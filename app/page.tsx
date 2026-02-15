@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 
-type AppKey = "paint" | "works" | "journal" | "about" | "modeling";
+type AppKey = "paint" | "museum" | "journal" | "about" | "modeling" | "video";
 
 type Win = {
   key: AppKey;
@@ -20,20 +20,50 @@ type Win = {
 export default function Home() {
   const [booting, setBooting] = useState(true);
   const [zTop, setZTop] = useState(10);
+  const [adOpen, setAdOpen] = useState(true);
+  // ✅ museum 입장 확인 모달
+const [museumConfirmOpen, setMuseumConfirmOpen] = useState(false);
+
+// ✅ museum 내부 "파일 탐색기"에서 현재 선택된 화면
+const [museumView, setMuseumView] = useState<"files" | "tunnel">("files");
+
+// ✅ 가짜 악성코드 경고 모달
+const [malwareAlertOpen, setMalwareAlertOpen] = useState(false);
+
 
   const [wins, setWins] = useState<Record<AppKey, Win>>({
     paint: { key: "paint", title: "Paint", minimized: false, x: 210, y: 90, z: 10 },
-    works: { key: "works", title: "Digital Museum", minimized: true, x: 24, y: 18, z: 2, w: 980, h: 650 },
+    museum: { key: "museum", title: "Digital Museum", minimized: true, x: 200, y: 75, z: 2, w: 1200, h: 820 },
 
     journal: { key: "journal", title: "Journal", minimized: true, x: 340, y: 170, z: 3 },
     about: { key: "about", title: "About", minimized: true, x: 410, y: 120, z: 4 },
     modeling: { key: "modeling", title: "3D Modeling", minimized: true, x: 480, y: 150, z: 5 },
+    video: {
+  key: "video",
+  title: "Visual Video",
+  minimized: true,
+  x: 520,
+  y: 150,
+  z: 6,
+},
+
   });
+    
+
+
 
   // ✅ 데스크탑을 "뚫고" 올라오는 3D 오버레이 상태
   const [desktopModel, setDesktopModel] = useState<null | { src: string; name: string }>(null);
   const launchDesktopModel = (src: string, name: string) => setDesktopModel({ src, name });
   const closeDesktopModel = () => setDesktopModel(null);
+  const [desktopVideo, setDesktopVideo] =
+  useState<null | { src: string; name: string }>(null);
+
+const launchDesktopVideo = (src: string, name: string) =>
+  setDesktopVideo({ src, name });
+
+const closeDesktopVideo = () => setDesktopVideo(null);
+
 
   useEffect(() => {
     const t = setTimeout(() => setBooting(false), 3000);
@@ -55,7 +85,7 @@ export default function Home() {
   // ✅ (선택) taskbar가 3D 오버레이에 덮이지 않도록 inline z-index 보강
   // CSS 파일을 건드리지 않고도 안전하게 유지하려고 여기서 style로 올려둠.
   const taskbarStyle: React.CSSProperties = {
-  position: "fixed",
+  position: "absolute",
   left: 0,
   right: 0,
   bottom: 0,
@@ -80,6 +110,8 @@ export default function Home() {
   };
 
   const closeWindow = (key: AppKey) => {
+    if (key === "video") closeDesktopVideo();
+
   // 1) closing 상태로 애니메이션 시작
   setWins((prev) => ({ ...prev, [key]: { ...prev[key], closing: true } }));
 
@@ -115,11 +147,44 @@ export default function Home() {
         </div>
       )}
 
-      <main className="desktop">
+<div className="viewport95">
+  <div className="crt95">
+      <main className="desktop desktop95" style={{ position: "relative", isolation: "isolate" }}>
+
+
+        {/* Desktop video background */}
+{desktopVideo && (
+  <video
+    src={desktopVideo.src}
+    autoPlay
+    loop
+    muted
+    playsInline
+    style={{
+      position: "absolute",
+      inset: 0,
+      width: "100%",
+      height: "100%",
+      objectFit: "cover",
+      zIndex: 0,   // ⭐ 핵심: 음수로 내려야 함
+      pointerEvents: "none",
+    }}
+  />
+)}
+
+        
         {/* Desktop icons */}
-        <div style={{ position: "absolute", top: 18, left: 18 }}>
+        <div style={{ position: "absolute", top: 18, left: 18, zIndex: 2 }}>
+
           <DesktopIcon label="Paint" iconSrc="/icons/paint.png" onOpen={() => openWindow("paint")} />
-          <DesktopIcon label="Works" iconSrc="/icons/works.png" onOpen={() => openWindow("works")} />
+          <DesktopIcon
+  label="Digital Museum"
+  iconSrc="/icons/museum.png"
+  onOpen={() => {
+    setMuseumConfirmOpen(true);
+  }}
+/>
+
           <DesktopIcon
             label="Journal"
             iconSrc="/icons/journal.png"
@@ -133,7 +198,16 @@ export default function Home() {
             iconSrc={"/icons/3D modeling.png"}
             onOpen={() => openWindow("modeling")}
           />
+          <DesktopIcon
+  label="Visual"
+  iconSrc="/icons/video.png"
+  onOpen={() => openWindow("video")}
+/>
+
         </div>
+        {adOpen && <RightAdPanel onClose={() => setAdOpen(false)} />}
+
+
 
         {/* Windows */}
         {!wins.paint.minimized && (
@@ -146,14 +220,20 @@ export default function Home() {
             <PaintApp />
           </WindowFrame>
         )}
-        {!wins.works.minimized && (
+        {!wins.museum.minimized && (
           <WindowFrame
-            win={wins.works}
-           onFocus={() => focusWindow("works")}
-            onClose={() => closeWindow("works")}
-           onMove={(x, y) => moveWindow("works", x, y)}
+            win={wins.museum}
+           onFocus={() => focusWindow("museum")}
+            onClose={() => closeWindow("museum")}
+           onMove={(x, y) => moveWindow("museum", x, y)}
           >
-             <DigitalMuseum />
+             <MuseumShell
+  view={museumView}
+  onOpenTunnel={() => setMuseumView("tunnel")}
+  onBackToFiles={() => setMuseumView("files")}
+  onTriggerMalware={() => setMalwareAlertOpen(true)}
+/>
+
            </WindowFrame>
           )}
 
@@ -200,6 +280,36 @@ export default function Home() {
           </WindowFrame>
         )}
 
+        {!wins.video.minimized && (
+  <WindowFrame
+    win={wins.video}
+    onFocus={() => focusWindow("video")}
+    onClose={() => closeWindow("video")}
+    onMove={(x, y) => moveWindow("video", x, y)}
+  >
+    <VisualVideoApp
+  onLaunch={launchDesktopVideo}
+  onStop={closeDesktopVideo}
+/>
+
+  </WindowFrame>
+)}
+
+{museumConfirmOpen && (
+  <ConfirmModal
+    title="Digital Museum"
+    message="Enter Digital Museum?"
+    yesLabel="Yes"
+    noLabel="No"
+    onYes={() => {
+      setMuseumConfirmOpen(false);
+      setMuseumView("files");     // 입장하면 파일목록부터
+      openWindow("museum");       // museum 창 열기
+    }}
+    onNo={() => setMuseumConfirmOpen(false)}
+  />
+)}
+
         {/* Taskbar: 부팅 끝난 뒤에만 */}
         {!booting && (
           <div className="taskbar" style={taskbarStyle}>
@@ -210,9 +320,9 @@ export default function Home() {
                 Paint
               </button>
             )}
-            {!wins.works.minimized && (
-              <button className="task" onClick={() => focusWindow("works")}>
-                Works
+            {!wins.museum.minimized && (
+              <button className="task" onClick={() => focusWindow("museum")}>
+                Digital Museum
               </button>
             )}
             {!wins.journal.minimized && (
@@ -230,12 +340,32 @@ export default function Home() {
                 3D Modeling
               </button>
             )}
+            {!wins.video.minimized && (
+  <button className="task" onClick={() => focusWindow("video")}>
+    Visual
+  </button>
+)}
+
+            
           </div>
+          
         )}
       </main>
+    </div>
+  </div>
 
       {/* ✅ 데스크탑을 "뚫고" 올라오는 3D 오버레이 */}
       {desktopModel && <DesktopModelOverlay model={desktopModel} onClose={closeDesktopModel} />}
+      {malwareAlertOpen && (
+  <AlertModal
+    title="Warning"
+    message={"This file is suspected malware.\nExecution has been blocked."}
+    okLabel="OK"
+    onOk={() => setMalwareAlertOpen(false)}
+  />
+)}
+     
+
             <style jsx global>{`
         .window.closing {
           animation: winClose 180ms ease-out forwards;
@@ -280,7 +410,11 @@ export default function Home() {
   box-shadow:
     inset 1px 1px #808080,
     inset -1px -1px #ffffff;
-}
+}/* ===== Win95: 4:3 fixed desktop scaler ===== *//* ===== Fullscreen + Win95 vibe (NO scaling) ===== */
+
+
+
+
 
       `}</style>
 
@@ -448,6 +582,42 @@ function ModelingApp({ onLaunch }: { onLaunch: (src: string, name: string) => vo
     </div>
   );
 }
+
+function VisualVideoApp({
+  onLaunch,
+  onStop,
+}: {
+  onLaunch: (src: string, name: string) => void;
+  onStop: () => void;
+}) {
+
+
+  const items = [{ name: "visual.mp4", src: "/video/visual.mp4" }];
+
+  return (
+  <div style={{ fontSize: 13 }}>
+    <b>VISUAL VIDEO</b>
+
+    <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
+      <button
+        className="task"
+        onClick={() => onLaunch(items[0].src, items[0].name)}
+      >
+        Set Background
+      </button>
+
+      <button
+        className="task"
+        onClick={onStop}
+      >
+        Stop Background
+      </button>
+    </div>
+  </div>
+);
+
+}
+
 
 /**
  * ✅ 배경화면을 "뚫고" 등장하는 3D 오버레이
@@ -766,7 +936,17 @@ function DigitalMuseum() {
         boxShadow: "inset -2px -2px #c0c0c0, inset 2px 2px #808080",
       }}
     >
-      <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 12 }}>Digital Museum</div>
+      <div
+  style={{
+    fontSize: 26,
+    fontWeight: 900,
+    marginBottom: 16,
+    letterSpacing: 1,
+  }}
+>
+  Digital Museum
+</div>
+
 
       <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
         {items.map((it) => (
@@ -776,7 +956,7 @@ function DigitalMuseum() {
               alt={it.title}
               loading="lazy"
               style={{
-                width: "100%",
+                width: "70%",
                 height: "auto",
                 display: "block",
                 border: "1px solid #000",
@@ -789,6 +969,283 @@ function DigitalMuseum() {
             </figcaption>
           </figure>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function RightAdPanel({ onClose }: { onClose: () => void }) {
+  const TASKBAR_H = 48; // (지금은 안 쓰지만 기존 유지)
+
+  // ✅ 광고 이미지 1장만
+  const items = [{ icon: "/ad/guide.png" }];
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: 350,
+        right: 10,
+        width: 170,
+        height: 420,
+        zIndex: 3, // ✅ 창(z 10+)보다 낮게: 창이 가릴 수 있음
+        pointerEvents: "auto",
+      }}
+    >
+      {/* Win95 창처럼 보이는 테두리 */}
+      <div
+        style={{
+          height: "100%",
+          background: "#c0c0c0",
+          border: "1px solid #000",
+          boxShadow: "inset -2px -2px #808080, inset 2px 2px #fff",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {/* 상단바 */}
+        <div
+          style={{
+            height: 22,
+            padding: "2px 4px",
+            background: "#000080",
+            color: "#fff",
+            fontSize: 12,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            userSelect: "none",
+          }}
+        >
+          <span>Ads</span>
+          <button className="winbtn" onClick={onClose} />
+        </div>
+
+        {/* ✅ 내용: 광고 이미지가 칸에 딱 맞게 1장만 */}
+        <div
+          style={{
+            flex: 1,
+            background: "#000",
+            overflow: "hidden", // ✅ 스크롤 없애기
+            padding: 0, // ✅ 여백 없애기
+          }}
+        >
+          {items.map((it) => (
+            <img
+              key={it.icon}
+              src={it.icon}
+              alt=""
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover", // ✅ 꽉 차게 (잘리기 싫으면 contain)
+                display: "block",
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function ConfirmModal({
+  title,
+  message,
+  yesLabel,
+  noLabel,
+  onYes,
+  onNo,
+}: {
+  title: string;
+  message: string;
+  yesLabel: string;
+  noLabel: string;
+  onYes: () => void;
+  onNo: () => void;
+}) {
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onNo();
+      if (e.key === "Enter") onYes();
+    };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [onNo, onYes]);
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 11000, // taskbar(10000)보다 위
+        display: "grid",
+        placeItems: "center",
+        background: "rgba(0,0,0,0.15)",
+      }}
+      onMouseDown={onNo}
+    >
+      <div
+        className="window"
+        onMouseDown={(e) => e.stopPropagation()}
+        style={{
+          width: 360,
+          height: 160,
+          position: "relative",
+          left: 0,
+          top: 0,
+        }}
+      >
+        <div className="titlebar" style={{ position: "relative", zIndex: 2 }}>
+          <div>{title}</div>
+          <div className="buttons">
+            <button className="winbtn" onClick={onNo} />
+          </div>
+        </div>
+
+        <div
+          className="window-body"
+          style={{
+            padding: 14,
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+          }}
+        >
+          <div style={{ fontSize: 14, lineHeight: 1.3 }}>{message}</div>
+
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <button className="task" onClick={onYes}>
+              {yesLabel}
+            </button>
+            <button className="task" onClick={onNo}>
+              {noLabel}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AlertModal({
+  title,
+  message,
+  okLabel,
+  onOk,
+}: {
+  title: string;
+  message: string;
+  okLabel: string;
+  onOk: () => void;
+}) {
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      if (e.key === "Escape" || e.key === "Enter") onOk();
+    };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [onOk]);
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 11000,
+        display: "grid",
+        placeItems: "center",
+        background: "rgba(0,0,0,0.15)",
+      }}
+      onMouseDown={onOk}
+    >
+      <div
+        className="window"
+        onMouseDown={(e) => e.stopPropagation()}
+        style={{ width: 420, height: 170, position: "relative", left: 0, top: 0 }}
+      >
+        <div className="titlebar" style={{ position: "relative", zIndex: 2 }}>
+          <div>{title}</div>
+          <div className="buttons">
+            <button className="winbtn" onClick={onOk} />
+          </div>
+        </div>
+
+        <div className="window-body" style={{ padding: 14 }}>
+          <div style={{ whiteSpace: "pre-line", fontSize: 14, lineHeight: 1.35 }}>
+            {message}
+          </div>
+
+          <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end" }}>
+            <button className="task" onClick={onOk}>
+              {okLabel}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MuseumShell({
+  view,
+  onOpenTunnel,
+  onBackToFiles,
+  onTriggerMalware,
+}: {
+  view: "files" | "tunnel";
+  onOpenTunnel: () => void;
+  onBackToFiles: () => void;
+  onTriggerMalware: () => void;
+}) {
+  if (view === "tunnel") {
+    return (
+      <div style={{ height: "100%" }}>
+        {/* 상단 작은 네비 */}
+        <div style={{ padding: 8, display: "flex", gap: 8 }}>
+          <button className="task" onClick={onBackToFiles}>
+            ← Back
+          </button>
+        </div>
+        <div style={{ height: "calc(100% - 44px)" }}>
+          <DigitalMuseum />
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ 파일 목록 화면 (가짜 탐색기)
+  return (
+    <div style={{ padding: 12, fontSize: 13 }}>
+      <div style={{ fontWeight: 800, marginBottom: 10 }}>FILES</div>
+
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+        {/* 가짜 악성코드 */}
+        <div
+          className="icon"
+          style={{ width: 120 }}
+          onDoubleClick={onTriggerMalware}
+          title="Do not run"
+        >
+          <img src="/icons/ad/guide.png" alt="" />
+          <span>MALWARE.exe</span>
+        </div>
+
+        {/* tunnel 드로잉 */}
+        <div
+          className="icon"
+          style={{ width: 120 }}
+          onDoubleClick={onOpenTunnel}
+          title="Open tunnel drawings"
+        >
+          <img src="/icons/works.png" alt="" />
+          <span>tunnel_drawings</span>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 14, fontSize: 12, opacity: 0.75 }}>
+        Double-click to open
       </div>
     </div>
   );
