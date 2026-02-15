@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 
-type AppKey = "paint" | "works" | "journal" | "about";
+type AppKey = "paint" | "works" | "journal" | "about" | "modeling";
 
 type Win = {
   key: AppKey;
@@ -22,12 +22,34 @@ export default function Home() {
     works: { key: "works", title: "Works", minimized: true, x: 260, y: 130, z: 2 },
     journal: { key: "journal", title: "Journal", minimized: true, x: 340, y: 170, z: 3 },
     about: { key: "about", title: "About", minimized: true, x: 410, y: 120, z: 4 },
+    modeling: { key: "modeling", title: "3D Modeling", minimized: true, x: 480, y: 150, z: 5 },
   });
+
+  // ✅ 데스크탑을 "뚫고" 올라오는 3D 오버레이 상태
+  const [desktopModel, setDesktopModel] = useState<null | { src: string; name: string }>(null);
+  const launchDesktopModel = (src: string, name: string) => setDesktopModel({ src, name });
+  const closeDesktopModel = () => setDesktopModel(null);
 
   useEffect(() => {
     const t = setTimeout(() => setBooting(false), 3000);
     return () => clearTimeout(t);
   }, []);
+
+  // ✅ model-viewer 스크립트 1회 로드 (GLB 회전/줌 뷰어)
+  useEffect(() => {
+    const id = "model-viewer-script";
+    if (document.getElementById(id)) return;
+
+    const s = document.createElement("script");
+    s.id = id;
+    s.type = "module";
+    s.src = "https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js";
+    document.head.appendChild(s);
+  }, []);
+
+  // ✅ (선택) taskbar가 3D 오버레이에 덮이지 않도록 inline z-index 보강
+  // CSS 파일을 건드리지 않고도 안전하게 유지하려고 여기서 style로 올려둠.
+  const taskbarStyle: React.CSSProperties = { zIndex: 10000 };
 
   const focusWindow = (key: AppKey) => {
     setWins((prev) => {
@@ -83,6 +105,13 @@ export default function Home() {
             onOpen={() => openWindow("journal")}
           />
           <DesktopIcon label="About" iconSrc="/icons/about.png" onOpen={() => openWindow("about")} />
+
+          {/* 3D Modeling 아이콘 */}
+          <DesktopIcon
+            label="3D Modeling"
+            iconSrc={"/icons/3D modeling.png"}
+            onOpen={() => openWindow("modeling")}
+          />
         </div>
 
         {/* Windows */}
@@ -142,9 +171,22 @@ export default function Home() {
           </WindowFrame>
         )}
 
+        {/* 3D Modeling 창 */}
+        {!wins.modeling.minimized && (
+          <WindowFrame
+            win={wins.modeling}
+            onFocus={() => focusWindow("modeling")}
+            onClose={() => closeWindow("modeling")}
+            onMove={(x, y) => moveWindow("modeling", x, y)}
+          >
+            {/* ✅ 파일 더블클릭 → 데스크탑에 모델 소환 */}
+            <ModelingApp onLaunch={launchDesktopModel} />
+          </WindowFrame>
+        )}
+
         {/* Taskbar: 부팅 끝난 뒤에만 */}
         {!booting && (
-          <div className="taskbar">
+          <div className="taskbar" style={taskbarStyle}>
             <button className="startbtn">Start</button>
 
             {!wins.paint.minimized && (
@@ -167,9 +209,17 @@ export default function Home() {
                 About
               </button>
             )}
+            {!wins.modeling.minimized && (
+              <button className="task" onClick={() => focusWindow("modeling")}>
+                3D Modeling
+              </button>
+            )}
           </div>
         )}
       </main>
+
+      {/* ✅ 데스크탑을 "뚫고" 올라오는 3D 오버레이 */}
+      {desktopModel && <DesktopModelOverlay model={desktopModel} onClose={closeDesktopModel} />}
     </>
   );
 }
@@ -243,6 +293,135 @@ function WindowFrame({
         </div>
       </div>
       <div className="window-body">{children}</div>
+    </div>
+  );
+}
+
+/**
+ * ✅ 3D Modeling 창 내용:
+ * - 여기의 "무언가" = 파일 아이콘 (evangelion.glb)
+ * - 더블클릭하면 배경 위로 3D 오버레이가 뜸
+ */
+function ModelingApp({ onLaunch }: { onLaunch: (src: string, name: string) => void }) {
+  // ✅ 네 실제 파일 경로/이름 반영
+  const items = [{ name: "evangelion.glb", src: "/models/evangelion.glb" }];
+
+  return (
+    <div style={{ fontSize: 13, lineHeight: 1.5 }}>
+      <b>3D MODELS</b>
+
+      <div
+        style={{
+          marginTop: 10,
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: 12,
+        }}
+      >
+        {items.map((it) => (
+          <div
+            key={it.src}
+            className="icon"
+            style={{ width: 110 }}
+            onDoubleClick={() => onLaunch(it.src, it.name)}
+            title="Double click to spawn on desktop"
+          >
+            {/* 파일 아이콘: 임시로 3D Modeling 아이콘 재사용 */}
+            <img src="/icons/3D modeling.png" alt="" />
+            <span>{it.name}</span>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ marginTop: 10, fontSize: 12, opacity: 0.8 }}>
+        Double-click the file to spawn it on the desktop.
+      </div>
+    </div>
+  );
+}
+
+/**
+ * ✅ 배경화면을 "뚫고" 등장하는 3D 오버레이
+ * - 배경은 그대로 보이고, 모델만 중앙에 크게 뜸
+ * - 모델 영역만 마우스 이벤트 받도록 pointerEvents 설정
+ * - ESC 또는 X로 닫기
+ */
+function DesktopModelOverlay({
+  model,
+  onClose,
+}: {
+  model: { src: string; name: string };
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
+  // 하단바 높이(필요하면 40~56 사이로 조절)
+  const TASKBAR_H = 48;
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 9999, // taskbar(10000)보다 낮아서 하단바는 항상 위에 남음
+        pointerEvents: "none",
+      }}
+    >
+      {/* 닫기 버튼 */}
+      <button
+        onClick={onClose}
+        style={{
+          pointerEvents: "auto",
+          position: "absolute",
+          top: 12,
+          right: 12,
+          width: 34,
+          height: 28,
+          border: "1px solid #000",
+          background: "#c0c0c0",
+          boxShadow: "inset -2px -2px #808080, inset 2px 2px #fff",
+          fontWeight: 700,
+          cursor: "pointer",
+          zIndex: 1,
+        }}
+        title="Close (Esc)"
+      >
+        X
+      </button>
+
+      {/* ✅ 화면 꽉 차게 (하단바 영역만 비워두기) */}
+      <div
+        style={{
+          pointerEvents: "auto",
+          position: "absolute",
+          inset: 0,
+          padding: 10,
+          paddingBottom: TASKBAR_H + 10, // ✅ 하단바 영역 피해가기
+        }}
+      >
+        {/* @ts-ignore */}
+        <model-viewer
+          src={model.src}
+          camera-controls
+          auto-rotate
+          rotation-per-second="20deg"
+          style={{
+            width: "100%",
+            height: "100%",
+            background: "transparent",
+            border: "0",
+          }}
+          exposure="1.0"
+          shadow-intensity="1"
+          alt={model.name}
+        />
+      </div>
     </div>
   );
 }
