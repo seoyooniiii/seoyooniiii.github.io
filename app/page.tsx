@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import AboutSection from './components/AboutSection';
+
 
 type AppKey = "paint" | "museum" | "journal" | "about" | "modeling" | "video";
 
@@ -254,18 +256,18 @@ const closeDesktopVideo = () => setDesktopVideo(null);
         )}
 
         {!wins.about.minimized && (
-          <WindowFrame
-            win={wins.about}
-            onFocus={() => focusWindow("about")}
-            onClose={() => closeWindow("about")}
-            onMove={(x, y) => moveWindow("about", x, y)}
-          >
-            <div style={{ fontSize: 13, lineHeight: 1.5 }}>
-              <b>ABOUT</b>
-              <div style={{ marginTop: 8 }}>Tools: Blender / TouchDesigner / AE</div>
-            </div>
-          </WindowFrame>
-        )}
+  <WindowFrame
+    win={wins.about}
+    onFocus={() => focusWindow("about")}
+    onClose={() => closeWindow("about")}
+    onMove={(x, y) => moveWindow("about", x, y)}
+  >
+    <div style={{ height: "100%", overflow: "auto" }}>
+      <AboutSection onOk={() => closeWindow("about")} />
+    </div>
+  </WindowFrame>
+)}
+
 
         {/* 3D Modeling 창 */}
         {!wins.modeling.minimized && (
@@ -294,7 +296,7 @@ const closeDesktopVideo = () => setDesktopVideo(null);
 
   </WindowFrame>
 )}
-
+  
 {museumConfirmOpen && (
   <ConfirmModal
     title="Digital Museum"
@@ -492,15 +494,20 @@ function WindowFrame({
         height: win.h ? `${win.h}px` : undefined,
       }}
       onMouseDown={onFocus}
-    >
-      <div
+    ><div
   className="titlebar"
-  style={{ position: "relative", zIndex: 2 }}   // ✅ 이 줄 추가
+  style={{
+    position: "relative",
+    zIndex: 2,
+    background: "linear-gradient(to right, #000080, #1084d0)",
+    color: "#fff",
+  }}
   onPointerDown={onPointerDownTitle}
   onPointerMove={onPointerMoveTitle}
   onPointerUp={onPointerUpTitle}
 >
 
+      
         <div>{win.title}</div>
         <div className="buttons">
           <button
@@ -1097,7 +1104,16 @@ function ConfirmModal({
           top: 0,
         }}
       >
-        <div className="titlebar" style={{ position: "relative", zIndex: 2 }}>
+        <div
+  className="titlebar"
+  style={{
+    position: "relative",
+    zIndex: 2,
+    background: "linear-gradient(to right, #000080, #1084d0)",
+    color: "#fff",
+  }}
+>
+
           <div>{title}</div>
           <div className="buttons">
             <button className="winbtn" onClick={onNo} />
@@ -1165,7 +1181,16 @@ function AlertModal({
         onMouseDown={(e) => e.stopPropagation()}
         style={{ width: 420, height: 170, position: "relative", left: 0, top: 0 }}
       >
-        <div className="titlebar" style={{ position: "relative", zIndex: 2 }}>
+        <div
+  className="titlebar"
+  style={{
+    position: "relative",
+    zIndex: 2,
+    background: "linear-gradient(to right, #000080, #1084d0)",
+    color: "#fff",
+  }}
+>
+
           <div>{title}</div>
           <div className="buttons">
             <button className="winbtn" onClick={onOk} />
