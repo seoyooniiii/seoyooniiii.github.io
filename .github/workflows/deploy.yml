@@ -27,15 +27,20 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      - name: Install deps
+      - name: Install dependencies
         run: npm ci
 
+      # Next.js build (output: "export" 설정이면 out/ 생성됨)
       - name: Build
         run: npm run build
 
+      # out/이 없어서 실패하는 걸 막기 위해 폴더를 먼저 만들고 .nojekyll 생성
       - name: Disable Jekyll
-        run: echo > out/.nojekyll
+        run: |
+          mkdir -p out
+          echo > out/.nojekyll
 
+      # Pages에 out/ 폴더를 업로드
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
@@ -51,4 +56,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
