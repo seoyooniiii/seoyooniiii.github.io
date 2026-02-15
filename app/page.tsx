@@ -11,6 +11,10 @@ type Win = {
   x: number;
   y: number;
   z: number;
+  w?: number;
+  h?: number;
+  closing?: boolean; //
+
 };
 
 export default function Home() {
@@ -19,7 +23,8 @@ export default function Home() {
 
   const [wins, setWins] = useState<Record<AppKey, Win>>({
     paint: { key: "paint", title: "Paint", minimized: false, x: 210, y: 90, z: 10 },
-    works: { key: "works", title: "Works", minimized: true, x: 260, y: 130, z: 2 },
+    works: { key: "works", title: "Digital Museum", minimized: true, x: 24, y: 18, z: 2, w: 980, h: 650 },
+
     journal: { key: "journal", title: "Journal", minimized: true, x: 340, y: 170, z: 3 },
     about: { key: "about", title: "About", minimized: true, x: 410, y: 120, z: 4 },
     modeling: { key: "modeling", title: "3D Modeling", minimized: true, x: 480, y: 150, z: 5 },
@@ -49,7 +54,14 @@ export default function Home() {
 
   // ✅ (선택) taskbar가 3D 오버레이에 덮이지 않도록 inline z-index 보강
   // CSS 파일을 건드리지 않고도 안전하게 유지하려고 여기서 style로 올려둠.
-  const taskbarStyle: React.CSSProperties = { zIndex: 10000 };
+  const taskbarStyle: React.CSSProperties = {
+  position: "fixed",
+  left: 0,
+  right: 0,
+  bottom: 0,
+  zIndex: 10000,
+};
+
 
   const focusWindow = (key: AppKey) => {
     setWins((prev) => {
@@ -68,8 +80,17 @@ export default function Home() {
   };
 
   const closeWindow = (key: AppKey) => {
-    setWins((prev) => ({ ...prev, [key]: { ...prev[key], minimized: true } }));
-  };
+  // 1) closing 상태로 애니메이션 시작
+  setWins((prev) => ({ ...prev, [key]: { ...prev[key], closing: true } }));
+
+  // 2) 애니메이션 끝나면 minimized 처리
+  window.setTimeout(() => {
+    setWins((prev) => ({
+      ...prev,
+      [key]: { ...prev[key], minimized: true, closing: false },
+    }));
+  }, 180);
+};
 
   const moveWindow = (key: AppKey, x: number, y: number) => {
     setWins((prev) => ({ ...prev, [key]: { ...prev[key], x, y } }));
@@ -125,23 +146,18 @@ export default function Home() {
             <PaintApp />
           </WindowFrame>
         )}
-
         {!wins.works.minimized && (
           <WindowFrame
             win={wins.works}
-            onFocus={() => focusWindow("works")}
+           onFocus={() => focusWindow("works")}
             onClose={() => closeWindow("works")}
-            onMove={(x, y) => moveWindow("works", x, y)}
+           onMove={(x, y) => moveWindow("works", x, y)}
           >
-            <div style={{ fontSize: 13, lineHeight: 1.5 }}>
-              <b>DRAWING</b>
-              <div style={{ marginTop: 8 }}>tunnel_01 ~ tunnel_04</div>
-              <div style={{ marginTop: 10, fontSize: 12, opacity: 0.8 }}>
-                (다음: 썸네일 그리드 + 클릭 시 뷰어 창)
-              </div>
-            </div>
-          </WindowFrame>
-        )}
+             <DigitalMuseum />
+           </WindowFrame>
+          )}
+
+       
 
         {!wins.journal.minimized && (
           <WindowFrame
@@ -220,6 +236,54 @@ export default function Home() {
 
       {/* ✅ 데스크탑을 "뚫고" 올라오는 3D 오버레이 */}
       {desktopModel && <DesktopModelOverlay model={desktopModel} onClose={closeDesktopModel} />}
+            <style jsx global>{`
+        .window.closing {
+          animation: winClose 180ms ease-out forwards;
+          transform-origin: top left;
+        }
+        @keyframes winClose {
+          from {
+            opacity: 1;
+            transform: scale(1);
+          }
+          to {
+            opacity: 0;
+            transform: scale(0.96);
+          }
+        }
+          /* ✅ WinClassic 느낌의 닫기 버튼 */
+.winbtn {
+  width: 18px !important;
+  height: 18px !important;
+  padding: 0;
+  border: 1px solid #000;
+  background: #c0c0c0;
+  box-shadow:
+    inset 1px 1px #ffffff,
+    inset -1px -1px #808080;
+  cursor: pointer;
+  position: relative;
+}
+
+/* 두꺼운 X를 "파여있는" 느낌으로 */
+.winbtn::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  background:
+    linear-gradient(45deg, transparent 42%, #111 42%, #111 58%, transparent 58%),
+    linear-gradient(-45deg, transparent 42%, #111 42%, #111 58%, transparent 58%);
+}
+
+/* 눌렀을 때(Win95 버튼 눌림) */
+.winbtn:active {
+  box-shadow:
+    inset 1px 1px #808080,
+    inset -1px -1px #ffffff;
+}
+
+      `}</style>
+
     </>
   );
 }
@@ -248,7 +312,7 @@ function WindowFrame({
   onMove,
   children,
 }: {
-  win: { title: string; x: number; y: number; z: number };
+  win: { title: string; x: number; y: number; z: number; w?: number; h?: number; closing?: boolean };
   onFocus: () => void;
   onClose: () => void;
   onMove: (x: number, y: number) => void;
@@ -257,14 +321,18 @@ function WindowFrame({
   const drag = useRef({ dragging: false, ox: 0, oy: 0 });
 
   const onPointerDownTitle = (e: React.PointerEvent) => {
-    onFocus();
-    const el = e.currentTarget as HTMLElement;
-    el.setPointerCapture(e.pointerId);
+  // ✅ 버튼(닫기) 누른 경우엔 드래그 시작하지 않음
+  if ((e.target as HTMLElement).closest("button")) return;
 
-    drag.current.dragging = true;
-    drag.current.ox = e.clientX - win.x;
-    drag.current.oy = e.clientY - win.y;
-  };
+  onFocus();
+  const el = e.currentTarget as HTMLElement;
+  el.setPointerCapture(e.pointerId);
+
+  drag.current.dragging = true;
+  drag.current.ox = e.clientX - win.x;
+  drag.current.oy = e.clientY - win.y;
+};
+
 
   const onPointerMoveTitle = (e: React.PointerEvent) => {
     if (!drag.current.dragging) return;
@@ -280,22 +348,63 @@ function WindowFrame({
   };
 
   return (
-    <div className="window" style={{ left: win.x, top: win.y, zIndex: win.z }} onMouseDown={onFocus}>
+    <div
+      className={`window ${win.closing ? "closing" : ""}`}
+      style={{
+        left: win.x,
+        top: win.y,
+        zIndex: win.z,
+        width: win.w ? `${win.w}px` : undefined,
+        height: win.h ? `${win.h}px` : undefined,
+      }}
+      onMouseDown={onFocus}
+    >
       <div
-        className="titlebar"
-        onPointerDown={onPointerDownTitle}
-        onPointerMove={onPointerMoveTitle}
-        onPointerUp={onPointerUpTitle}
-      >
+  className="titlebar"
+  style={{ position: "relative", zIndex: 2 }}   // ✅ 이 줄 추가
+  onPointerDown={onPointerDownTitle}
+  onPointerMove={onPointerMoveTitle}
+  onPointerUp={onPointerUpTitle}
+>
+
         <div>{win.title}</div>
         <div className="buttons">
-          <button className="winbtn" onClick={(e) => (e.stopPropagation(), onClose())} />
+          <button
+  className="winbtn"
+  onClick={(e) => {
+    e.stopPropagation();
+    onClose();
+  }}
+  style={{
+    width: 20,
+    height: 18,
+    fontWeight: 700,
+    cursor: "pointer",
+    pointerEvents: "auto",
+  }}
+>
+  ×
+</button>
+
         </div>
       </div>
-      <div className="window-body">{children}</div>
+
+      <div
+  className="window-body"
+  style={{
+    height: win.h ? `calc(${win.h}px - 28px)` : undefined,
+    overflow: "hidden",
+    position: "relative",
+    zIndex: 0,
+  }}
+>
+
+        {children}
+      </div>
     </div>
   );
 }
+
 
 /**
  * ✅ 3D Modeling 창 내용:
@@ -361,23 +470,25 @@ function DesktopModelOverlay({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
-  // 하단바 높이(필요하면 40~56 사이로 조절)
   const TASKBAR_H = 48;
 
   return (
     <div
+      onMouseDown={onClose} // ✅ 바깥 클릭하면 닫기
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 9999, // taskbar(10000)보다 낮아서 하단바는 항상 위에 남음
-        pointerEvents: "none",
+        zIndex: 9999, // taskbar(10000)보다 낮음
+        background: "transparent",
+        cursor: "default",
       }}
+      title="Click to close (Esc)"
     >
-      {/* 닫기 버튼 */}
+      {/* 닫기 버튼 (taskbar 안 가리게) */}
       <button
+        onMouseDown={(e) => e.stopPropagation()}
         onClick={onClose}
         style={{
-          pointerEvents: "auto",
           position: "absolute",
           top: 12,
           right: 12,
@@ -395,14 +506,14 @@ function DesktopModelOverlay({
         X
       </button>
 
-      {/* ✅ 화면 꽉 차게 (하단바 영역만 비워두기) */}
+      {/* ✅ 이 영역 클릭은 닫히지 않게 막고, 여기서만 회전/줌 */}
       <div
+        onMouseDown={(e) => e.stopPropagation()}
         style={{
-          pointerEvents: "auto",
           position: "absolute",
           inset: 0,
           padding: 10,
-          paddingBottom: TASKBAR_H + 10, // ✅ 하단바 영역 피해가기
+          paddingBottom: TASKBAR_H + 10,
         }}
       >
         {/* @ts-ignore */}
@@ -411,20 +522,22 @@ function DesktopModelOverlay({
           camera-controls
           auto-rotate
           rotation-per-second="20deg"
+          antialiasing="msaa"
+          environment-image="neutral"
+          tone-mapping="aces"
           style={{
             width: "100%",
             height: "100%",
             background: "transparent",
             border: "0",
           }}
-          exposure="1.0"
-          shadow-intensity="1"
           alt={model.name}
         />
       </div>
     </div>
   );
 }
+
 
 function PaintApp() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -628,6 +741,54 @@ function PaintApp() {
         <div style={{ marginTop: 8, fontSize: 12 }}>
           Mode: <b>{tool}</b> / Color: <b>{color}</b>
         </div>
+      </div>
+    </div>
+  );
+}
+
+
+function DigitalMuseum() {
+  const items = [
+    { src: "/images/drawings/tunnel_01.jpg", title: "tunnel_01" },
+    { src: "/images/drawings/tunnel_02.jpg", title: "tunnel_02" },
+    { src: "/images/drawings/tunnel_03.jpg", title: "tunnel_03" },
+    { src: "/images/drawings/tunnel_04.jpg", title: "tunnel_04" },
+  ];
+
+  return (
+    <div
+      style={{
+        height: "100%", // ✅ 창 내부를 꽉 채움
+        overflowY: "auto",
+        padding: 14,
+        background: "#fff",
+        border: "1px solid #000",
+        boxShadow: "inset -2px -2px #c0c0c0, inset 2px 2px #808080",
+      }}
+    >
+      <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 12 }}>Digital Museum</div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+        {items.map((it) => (
+          <figure key={it.src} style={{ margin: 0 }}>
+            <img
+              src={it.src}
+              alt={it.title}
+              loading="lazy"
+              style={{
+                width: "100%",
+                height: "auto",
+                display: "block",
+                border: "1px solid #000",
+                boxShadow: "2px 2px 0 #808080",
+                background: "#fff",
+              }}
+            />
+            <figcaption style={{ marginTop: 8, fontSize: 12, color: "#777" }}>
+              {it.title}
+            </figcaption>
+          </figure>
+        ))}
       </div>
     </div>
   );
