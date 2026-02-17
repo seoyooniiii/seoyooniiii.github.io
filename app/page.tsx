@@ -28,6 +28,8 @@ const [museumConfirmOpen, setMuseumConfirmOpen] = useState(false);
 
 // ✅ museum 내부 "파일 탐색기"에서 현재 선택된 화면
 const [museumView, setMuseumView] = useState<"files" | "tunnel">("files");
+const [clock, setClock] = useState("");
+
 
 // ✅ 가짜 악성코드 경고 모달
 const [malwareAlertOpen, setMalwareAlertOpen] = useState(false);
@@ -37,7 +39,7 @@ const [malwareAlertOpen, setMalwareAlertOpen] = useState(false);
     paint: { key: "paint", title: "Paint", minimized: false, x: 210, y: 90, z: 10 },
     museum: { key: "museum", title: "Digital Museum", minimized: true, x: 200, y: 75, z: 2, w: 1200, h: 820 },
 
-    journal: { key: "journal", title: "Journal", minimized: true, x: 340, y: 170, z: 3 },
+    journal: { key: "journal", title: "Journal", minimized: false, x: 340, y: 170, z: 11 },
     about: { key: "about", title: "About", minimized: true, x: 410, y: 120, z: 4 },
     modeling: { key: "modeling", title: "3D Modeling", minimized: true, x: 480, y: 150, z: 5 },
     video: {
@@ -71,6 +73,24 @@ const closeDesktopVideo = () => setDesktopVideo(null);
     const t = setTimeout(() => setBooting(false), 3000);
     return () => clearTimeout(t);
   }, []);
+  useEffect(() => {
+  const update = () => {
+    const now = new Date();
+
+    // Win95 느낌: 12시간 AM/PM + 분까지
+    const t = now.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+
+    setClock(t);
+  };
+
+  update(); // 처음 렌더 때 바로 1번 표시
+  const id = window.setInterval(update, 1000);
+  return () => window.clearInterval(id);
+}, []);
+
 
   // ✅ model-viewer 스크립트 1회 로드 (GLB 회전/줌 뷰어)
   useEffect(() => {
@@ -248,10 +268,18 @@ const closeDesktopVideo = () => setDesktopVideo(null);
             onClose={() => closeWindow("journal")}
             onMove={(x, y) => moveWindow("journal", x, y)}
           >
-            <div style={{ fontSize: 13, lineHeight: 1.5 }}>
-              <b>LOG</b>
-              <div style={{ marginTop: 8 }}>- 2026-02-14: paint added</div>
-            </div>
+           <div style={{ fontSize: 13, lineHeight: 1.5 }}>
+  <b>LOG</b>
+
+  <div style={{ marginTop: 8 }}>
+    - 2026-02-14: paint added
+  </div>
+
+  <div style={{ marginTop: 8 }}>
+    - 2026-02-18: A site no one seems to visit… is anyone actually reading this?
+  </div>
+</div>
+
           </WindowFrame>
         )}
 
@@ -316,6 +344,7 @@ const closeDesktopVideo = () => setDesktopVideo(null);
         {!booting && (
           <div className="taskbar" style={taskbarStyle}>
             <button className="startbtn">Start</button>
+            
 
             {!wins.paint.minimized && (
               <button className="task" onClick={() => focusWindow("paint")}>
@@ -347,6 +376,25 @@ const closeDesktopVideo = () => setDesktopVideo(null);
     Visual
   </button>
 )}
+<div
+  style={{
+    marginLeft: "auto",
+    display: "flex",
+    alignItems: "center",
+    gap: 6,              // ⭐ 아이콘 간격
+    height: 22,
+    padding: "0 10px",
+    border: "1px solid #000",
+    background: "#c0c0c0",
+    boxShadow: "inset -1px -1px #808080, inset 1px 1px #fff",
+    fontSize: 12,
+  }}
+>
+  
+
+  {clock}
+</div>
+
 
             
           </div>
@@ -413,6 +461,34 @@ const closeDesktopVideo = () => setDesktopVideo(null);
     inset 1px 1px #808080,
     inset -1px -1px #ffffff;
 }/* ===== Win95: 4:3 fixed desktop scaler ===== *//* ===== Fullscreen + Win95 vibe (NO scaling) ===== */
+
+/* CRT scanline 효과 */
+.crt95 {
+  position: relative;
+}
+
+.crt95::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.03) 0px,
+    rgba(0,0,0,0.03) 1px,
+    transparent 2px,
+    transparent 4px
+  );
+}
+
+/* 살짝 색 번짐 */
+.crt95::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 40px rgba(0,0,0,0.25);
+}
 
 
 
@@ -945,13 +1021,13 @@ function DigitalMuseum() {
     >
       <div
   style={{
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: 900,
     marginBottom: 16,
-    letterSpacing: 1,
+    letterSpacing: 0.2,
   }}
 >
-  Digital Museum
+  A tunnel that takes you somewhere nice
 </div>
 
 
@@ -1145,74 +1221,6 @@ function ConfirmModal({
   );
 }
 
-function AlertModal({
-  title,
-  message,
-  okLabel,
-  onOk,
-}: {
-  title: string;
-  message: string;
-  okLabel: string;
-  onOk: () => void;
-}) {
-  useEffect(() => {
-    const k = (e: KeyboardEvent) => {
-      if (e.key === "Escape" || e.key === "Enter") onOk();
-    };
-    window.addEventListener("keydown", k);
-    return () => window.removeEventListener("keydown", k);
-  }, [onOk]);
-
-  return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 11000,
-        display: "grid",
-        placeItems: "center",
-        background: "rgba(0,0,0,0.15)",
-      }}
-      onMouseDown={onOk}
-    >
-      <div
-        className="window"
-        onMouseDown={(e) => e.stopPropagation()}
-        style={{ width: 420, height: 170, position: "relative", left: 0, top: 0 }}
-      >
-        <div
-  className="titlebar"
-  style={{
-    position: "relative",
-    zIndex: 2,
-    background: "linear-gradient(to right, #000080, #1084d0)",
-    color: "#fff",
-  }}
->
-
-          <div>{title}</div>
-          <div className="buttons">
-            <button className="winbtn" onClick={onOk} />
-          </div>
-        </div>
-
-        <div className="window-body" style={{ padding: 14 }}>
-          <div style={{ whiteSpace: "pre-line", fontSize: 14, lineHeight: 1.35 }}>
-            {message}
-          </div>
-
-          <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end" }}>
-            <button className="task" onClick={onOk}>
-              {okLabel}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function MuseumShell({
   view,
   onOpenTunnel,
@@ -1233,6 +1241,7 @@ function MuseumShell({
             ← Back
           </button>
         </div>
+
         <div style={{ height: "calc(100% - 44px)" }}>
           <DigitalMuseum />
         </div>
@@ -1240,10 +1249,19 @@ function MuseumShell({
     );
   }
 
-  // ✅ 파일 목록 화면 (가짜 탐색기)
+  // ✅ 파일 목록 화면
   return (
     <div style={{ padding: 12, fontSize: 13 }}>
-      <div style={{ fontWeight: 800, marginBottom: 10 }}>FILES</div>
+      <div
+        style={{
+          fontWeight: 900,
+          marginBottom: 12,
+          fontSize: 26,
+          letterSpacing: 0.5,
+        }}
+      >
+        Digital Museum
+      </div>
 
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
         {/* 가짜 악성코드 */}
@@ -1253,7 +1271,8 @@ function MuseumShell({
           onDoubleClick={onTriggerMalware}
           title="Do not run"
         >
-          <img src="/icons/ad/guide.png" alt="" />
+          {/* ✅ 경로 수정: /icons/ad/guide.png → /ad/guide.png */}
+          <img src="/icons/Files.png" alt="" />
           <span>MALWARE.exe</span>
         </div>
 
@@ -1264,7 +1283,7 @@ function MuseumShell({
           onDoubleClick={onOpenTunnel}
           title="Open tunnel drawings"
         >
-          <img src="/icons/works.png" alt="" />
+          <img src="/icons/Files.png" alt="" />
           <span>tunnel_drawings</span>
         </div>
       </div>
