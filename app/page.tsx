@@ -1221,6 +1221,74 @@ function ConfirmModal({
   );
 }
 
+function AlertModal({
+  title,
+  message,
+  okLabel,
+  onOk,
+}: {
+  title: string;
+  message: string;
+  okLabel: string;
+  onOk: () => void;
+}) {
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      if (e.key === "Escape" || e.key === "Enter") onOk();
+    };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [onOk]);
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 11000,
+        display: "grid",
+        placeItems: "center",
+        background: "rgba(0,0,0,0.15)",
+      }}
+      onMouseDown={onOk}
+    >
+      <div
+        className="window"
+        onMouseDown={(e) => e.stopPropagation()}
+        style={{ width: 420, height: 170, position: "relative", left: 0, top: 0 }}
+      >
+        <div
+          className="titlebar"
+          style={{
+            position: "relative",
+            zIndex: 2,
+            background: "linear-gradient(to right, #000080, #1084d0)",
+            color: "#fff",
+          }}
+        >
+          <div>{title}</div>
+          <div className="buttons">
+            <button className="winbtn" onClick={onOk} />
+          </div>
+        </div>
+
+        <div className="window-body" style={{ padding: 14 }}>
+          <div style={{ whiteSpace: "pre-line", fontSize: 14, lineHeight: 1.35 }}>
+            {message}
+          </div>
+
+          <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end" }}>
+            <button className="task" onClick={onOk}>
+              {okLabel}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 function MuseumShell({
   view,
   onOpenTunnel,
