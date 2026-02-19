@@ -29,6 +29,30 @@ const [museumConfirmOpen, setMuseumConfirmOpen] = useState(false);
 // ✅ museum 내부 "파일 탐색기"에서 현재 선택된 화면
 const [museumView, setMuseumView] = useState<"files" | "tunnel">("files");
 const [clock, setClock] = useState("");
+// ✅ 아이콘 클릭 시: 더블클릭 안내 토스트(1초 후 자동 종료)
+const [dblClickHintOpen, setDblClickHintOpen] = useState(false);
+const dblHintTimerRef = useRef<number | null>(null);
+
+const handleFirstIconClickHint = () => {
+  setDblClickHintOpen(true);
+
+  if (dblHintTimerRef.current) window.clearTimeout(dblHintTimerRef.current);
+  dblHintTimerRef.current = window.setTimeout(() => {
+    setDblClickHintOpen(false);
+  }, 1000);
+};
+
+useEffect(() => {
+  return () => {
+    if (dblHintTimerRef.current) window.clearTimeout(dblHintTimerRef.current);
+  };
+}, []);
+
+useEffect(() => {
+  return () => {
+    if (dblHintTimerRef.current) window.clearTimeout(dblHintTimerRef.current);
+  };
+}, []);
 
 
 // ✅ 가짜 악성코드 경고 모달
@@ -76,17 +100,14 @@ const closeDesktopVideo = () => setDesktopVideo(null);
   useEffect(() => {
   const update = () => {
     const now = new Date();
-
-    // Win95 느낌: 12시간 AM/PM + 분까지
     const t = now.toLocaleTimeString("en-US", {
       hour: "numeric",
       minute: "2-digit",
     });
-
     setClock(t);
   };
 
-  update(); // 처음 렌더 때 바로 1번 표시
+  update(); // 처음 1번 바로 표시
   const id = window.setInterval(update, 1000);
   return () => window.clearInterval(id);
 }, []);
@@ -198,32 +219,32 @@ const closeDesktopVideo = () => setDesktopVideo(null);
         {/* Desktop icons */}
         <div style={{ position: "absolute", top: 18, left: 18, zIndex: 2 }}>
 
-          <DesktopIcon label="Paint" iconSrc="/icons/paint.png" onOpen={() => openWindow("paint")} />
+          <DesktopIcon label="Paint" iconSrc="/icons/paint.png" onOpen={() => openWindow("paint")} onFirstClick={handleFirstIconClickHint}/>
           <DesktopIcon
   label="Digital Museum"
   iconSrc="/icons/museum.png"
   onOpen={() => {
-    setMuseumConfirmOpen(true);
-  }}
+    setMuseumConfirmOpen(true); 
+  }} onFirstClick={handleFirstIconClickHint}
 />
 
           <DesktopIcon
             label="Journal"
             iconSrc="/icons/journal.png"
-            onOpen={() => openWindow("journal")}
+            onOpen={() => openWindow("journal")} onFirstClick={handleFirstIconClickHint}
           />
-          <DesktopIcon label="About" iconSrc="/icons/about.png" onOpen={() => openWindow("about")} />
+          <DesktopIcon label="About" iconSrc="/icons/about.png" onOpen={() => openWindow("about")} onFirstClick={handleFirstIconClickHint}/>
 
           {/* 3D Modeling 아이콘 */}
           <DesktopIcon
             label="3D Modeling"
             iconSrc={"/icons/3D modeling.png"}
-            onOpen={() => openWindow("modeling")}
+            onOpen={() => openWindow("modeling")} onFirstClick={handleFirstIconClickHint}
           />
           <DesktopIcon
   label="Visual"
   iconSrc="/icons/video.png"
-  onOpen={() => openWindow("video")}
+  onOpen={() => openWindow("video")} onFirstClick={handleFirstIconClickHint}
 />
 
         </div>
@@ -254,6 +275,7 @@ const closeDesktopVideo = () => setDesktopVideo(null);
   onOpenTunnel={() => setMuseumView("tunnel")}
   onBackToFiles={() => setMuseumView("files")}
   onTriggerMalware={() => setMalwareAlertOpen(true)}
+  onHint={handleFirstIconClickHint}
 />
 
            </WindowFrame>
@@ -414,6 +436,13 @@ const closeDesktopVideo = () => setDesktopVideo(null);
     onOk={() => setMalwareAlertOpen(false)}
   />
 )}
+{dblClickHintOpen && (
+  <Win95Toast
+    title="System Warning"
+    message="Double-click the icon to open."
+  />
+)}
+
      
 
             <style jsx global>{`
@@ -504,18 +533,28 @@ function DesktopIcon({
   label,
   iconSrc,
   onOpen,
+  onFirstClick,
 }: {
   label: string;
   iconSrc: string;
   onOpen: () => void;
+  onFirstClick?: () => void;
 }) {
   return (
-    <div className="icon" onDoubleClick={onOpen}>
-      <img src={iconSrc} alt="" />
-      <span>{label}</span>
+    <div
+      className="icon"
+      onPointerDownCapture={(e) => {
+        if (e.button === 0) onFirstClick?.(); // 왼쪽 클릭마다 토스트
+      }}
+      onDoubleClick={onOpen}
+    >
+      <img src={iconSrc} alt="" draggable={false} style={{ pointerEvents: "none" }} />
+      <span style={{ pointerEvents: "none" }}>{label}</span>
     </div>
   );
 }
+
+
 
 function WindowFrame({
   win,
@@ -1288,17 +1327,100 @@ function AlertModal({
   );
 }
 
+function Win95Toast({
+  title,
+  message,
+}: {
+  title: string;
+  message: string;
+}) {
+  return (
+    <div
+      style={{
+       position: "fixed",
+left: 18,
+top: 18,
+bottom: undefined,
+// taskbar 위로 살짝 띄움
+        zIndex: 12000,
+        pointerEvents: "none", // 클릭 방해 안 함
+      }}
+    >
+      <div
+        className="window"
+        style={{
+          width: 280,
+          border: "1px solid #000",
+          background: "#c0c0c0",
+          boxShadow: "inset -2px -2px #808080, inset 2px 2px #fff",
+        }}
+      >
+        {/* Win95 titlebar */}
+        <div
+          className="titlebar"
+          style={{
+            height: 22,
+            padding: "2px 6px",
+            background: "linear-gradient(to right, #000080, #1084d0)",
+            color: "#fff",
+            fontSize: 12,
+            display: "flex",
+            alignItems: "center",
+            userSelect: "none",
+          }}
+        >
+          {title}
+        </div>
+
+        {/* body */}
+        <div
+          style={{
+            padding: 10,
+            display: "flex",
+            gap: 10,
+            alignItems: "flex-start",
+            fontSize: 12,
+            lineHeight: 1.3,
+          }}
+        >
+          {/* 느낌용 아이콘(노란 느낌의 경고) */}
+          <div
+            style={{
+              width: 18,
+              height: 18,
+              border: "1px solid #000",
+              background: "#ffff00",
+              boxShadow: "inset -1px -1px #c0c0c0, inset 1px 1px #808080",
+              display: "grid",
+              placeItems: "center",
+              fontWeight: 900,
+              color: "#000",
+              flex: "0 0 auto",
+            }}
+          >
+            !
+          </div>
+
+          <div style={{ flex: 1 }}>{message}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 function MuseumShell({
   view,
   onOpenTunnel,
   onBackToFiles,
   onTriggerMalware,
+  onHint,
 }: {
   view: "files" | "tunnel";
   onOpenTunnel: () => void;
   onBackToFiles: () => void;
   onTriggerMalware: () => void;
+  onHint: () => void;
 }) {
   if (view === "tunnel") {
     return (
@@ -1336,6 +1458,7 @@ function MuseumShell({
         <div
           className="icon"
           style={{ width: 120 }}
+          onClickCapture={onHint}
           onDoubleClick={onTriggerMalware}
           title="Do not run"
         >
@@ -1348,6 +1471,7 @@ function MuseumShell({
         <div
           className="icon"
           style={{ width: 120 }}
+          onClickCapture={onHint}
           onDoubleClick={onOpenTunnel}
           title="Open tunnel drawings"
         >
