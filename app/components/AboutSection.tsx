@@ -169,73 +169,103 @@ export default function AboutSection({ onOk }: { onOk?: () => void }) {
           <button type="button" style={win95ButtonStyle(false)} onClick={onOk}>
             OK
           </button>
-        </div>
+                </div>
 
         {/* Guestbook group box */}
-        <div style={{ marginTop: 12, ...groupBox }}>
-          <div style={legend}>GUESTBOOK</div>
+<div
+  style={{
+    marginTop: 12,
+    ...groupBox,
+    background: '#c0c0c0', // ✅ 내부도 회색
+    border: '2px solid #000',
+    boxShadow: 'inset -2px -2px #808080, inset 2px 2px #fff, 2px 2px 0 #808080',
+  }}
+>
+  <div style={{ ...legend, fontSize: 13, letterSpacing: 0.6 }}>
+    PRIVATE GUESTBOOK
+  </div>
 
-          <div style={{ fontSize: 11, marginBottom: 8, lineHeight: 1.3 }}>
-            닉네임 + 짧은 인삿말을 남겨줘. 저장 시각(년-월-일 시:분:초)이 기록돼.
-            <br />
-            ※ 정적 사이트라 브라우저(localStorage)에만 저장돼.
-          </div>
+  {/* ✅ 내부 안내 패널: 회색 + "파인" 박스(버튼 아님) */}
+  <div
+    style={{
+      border: '1px solid #000',
+      background: '#c0c0c0',
+      padding: 10,
+      boxShadow: 'inset 2px 2px #808080, inset -2px -2px #fff', // ✅ inset(파인 느낌)
+      display: 'flex',
+      gap: 10,
+      alignItems: 'flex-start',
+    }}
+  >
+    {/* 아이콘 */}
+    <div
+      style={{
+        width: 34,
+        height: 34,
+        border: '1px solid #000',
+        boxShadow: 'inset 1px 1px #fff, inset -1px -1px #808080',
+        background: '#c0c0c0',
+        display: 'grid',
+        placeItems: 'center',
+        fontWeight: 900,
+        fontSize: 18,
+        color: '#000080',
+        userSelect: 'none',
+      }}
+      aria-hidden
+    >
+      i
+    </div>
 
-          <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <input
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                placeholder="닉네임 (1~20자)"
-                maxLength={20}
-                style={{
-                  flex: 1,
-                  height: 24,
-                  padding: '0 8px',
-                  fontSize: 12,
-                  border: '1px solid #000',
-                  boxShadow: 'inset -1px -1px #fff, inset 1px 1px #808080',
-                }}
-              />
-              <button type="submit" disabled={!canSubmit} style={win95ButtonStyle(!canSubmit)}>
-                Add
-              </button>
-            </div>
+    <div style={{ flex: 1 }}>
+      <div style={{ fontSize: 12, lineHeight: 1.35 }}>
+        Leave a private note.
+        <br />
+        Messages are not publicly visible.
+      </div>
 
-            <input
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="짧은 인삿말 (1~60자)"
-              maxLength={60}
-              style={{
-                height: 24,
-                padding: '0 8px',
-                fontSize: 12,
-                border: '1px solid #000',
-                boxShadow: 'inset -1px -1px #fff, inset 1px 1px #808080',
-              }}
-            />
-
-            {error && <div style={{ fontSize: 11, color: '#800000' }}>{error}</div>}
-          </form>
-
-          <div style={{ marginTop: 10, ...whiteWell, padding: 8, maxHeight: 170, overflowY: 'auto' }}>
-            {entries.length === 0 ? (
-              <div style={{ fontSize: 12, opacity: 0.75 }}>No entries yet.</div>
-            ) : (
-              entries.map((e) => (
-                <div key={e.id} style={{ padding: '6px 4px', borderBottom: '1px dotted #808080' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700 }}>{e.nickname}</div>
-                    <div style={{ fontSize: 11, opacity: 0.75 }}>{e.createdAt}</div>
-                  </div>
-                  <div style={{ fontSize: 12, marginTop: 2 }}>{e.message}</div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+      {/* ✅ 버튼처럼 보이지 않는 "태그" 라벨 */}
+      <div style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <span
+          style={{
+            fontSize: 10,
+            padding: '1px 6px',
+            border: '1px solid #000',
+            background: '#000080',
+            color: '#fff',
+            letterSpacing: 0.6,
+            lineHeight: 1.4,
+          }}
+        >
+          PRIVATE
+        </span>
+        <span style={{ fontSize: 11, opacity: 0.85 }}>Stored in Tally</span>
       </div>
     </div>
+  </div>
+
+  {/* 버튼 줄 */}
+  <div style={{ display: 'flex', gap: 8, marginTop: 10, justifyContent: 'flex-end' }}>
+    <a
+      href="https://tally.so/r/eq62AE"
+      target="_blank"
+      rel="noreferrer"
+      style={{
+        ...win95ButtonStyle(false),
+        display: 'inline-flex',
+        alignItems: 'center',
+        textDecoration: 'none',
+        color: '#000',
+      }}
+    >
+      Open
+    </a>
+  </div>
+</div>
+
+
+
+      </div>     {/* ✅ insetPanel 닫힘 */}
+    </div>       /* ✅ panelOuter 닫힘 */
   );
 }
