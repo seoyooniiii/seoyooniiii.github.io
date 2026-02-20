@@ -704,7 +704,13 @@ const toggleFullscreen = (key: AppKey) => {
 .desktop95{
   width: 100vw;
   height: 100dvh;            /* 또는 100% */
-  padding-bottom: 48px; }
+  padding-bottom: 48px; 
+
+  background-image: url("/wallpaper/win98.png");
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
 
 .taskbarFixed{
   position: fixed;
@@ -1360,24 +1366,18 @@ function DigitalMuseum() {
 }
 
 function RightAdPanel({ onClose }: { onClose: () => void }) {
-  const TASKBAR_H = 48; // (지금은 안 쓰지만 기존 유지)
-
-  // ✅ 광고 이미지 1장만
-  const items = [{ icon: "/ad/guide.png" }];
-
   return (
     <div
       style={{
         position: "absolute",
         top: 350,
         right: 10,
-        width: 170,
+        width: 300,     // 🔥 크게 보이게 크기 확장
         height: 420,
-        zIndex: 3, // ✅ 창(z 10+)보다 낮게: 창이 가릴 수 있음
+        zIndex: 3,
         pointerEvents: "auto",
       }}
     >
-      {/* Win95 창처럼 보이는 테두리 */}
       <div
         style={{
           height: "100%",
@@ -1393,7 +1393,7 @@ function RightAdPanel({ onClose }: { onClose: () => void }) {
           style={{
             height: 22,
             padding: "2px 4px",
-            background: "#000080",
+            background: "linear-gradient(to right, #000080, #1084d0)", // 🔥 Win95 느낌
             color: "#fff",
             fontSize: 12,
             display: "flex",
@@ -1402,32 +1402,40 @@ function RightAdPanel({ onClose }: { onClose: () => void }) {
             userSelect: "none",
           }}
         >
-          <span>Ads</span>
-          <button className="winbtn close" onClick={onClose} aria-label="Close" title="Close" />
+          <span></span>
+          <button
+            className="winbtn close"
+            onClick={onClose}
+            aria-label="Close"
+            title="Close"
+          />
         </div>
 
-        {/* ✅ 내용: 광고 이미지가 칸에 딱 맞게 1장만 */}
+        {/* 내용 영역 */}
         <div
           style={{
             flex: 1,
-            background: "#000",
-            overflow: "hidden", // ✅ 스크롤 없애기
-            padding: 0, // ✅ 여백 없애기
+            background: "#c0c0c0",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+            textAlign: "center",
           }}
         >
-          {items.map((it) => (
-            <img
-              key={it.icon}
-              src={it.icon}
-              alt=""
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover", // ✅ 꽉 차게 (잘리기 싫으면 contain)
-                display: "block",
-              }}
-            />
-          ))}
+          <div
+            style={{
+              fontSize: 22,        // 🔥 크게
+              fontWeight: 900,
+              color: "#000",
+              lineHeight: 1.3,
+              textShadow: "1px 1px #fff", // 약간 입체감
+            }}
+          >
+            Hi I’m seoyoon  
+            <br />
+            welcome to my world
+          </div>
         </div>
       </div>
     </div>
