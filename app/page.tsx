@@ -131,22 +131,6 @@ useEffect(() => {
   return () => mql.removeEventListener("change", apply);
 }, []);
 
-const [scale, setScale] = useState(1);
-
-useEffect(() => {
-  if (!isMobile) {
-    setScale(1);
-    return;
-  }
-  const update = () => {
-    const s = Math.min(1, window.innerWidth / 1280);
-    setScale(s);
-  };
-  update();
-  window.addEventListener("resize", update);
-  return () => window.removeEventListener("resize", update);
-}, [isMobile]);
-
   const focusWindow = (key: AppKey) => {
     setWins((prev) => {
       const nextZ = zTop + 1;
@@ -207,8 +191,7 @@ useEffect(() => {
 
 <div className="viewport95">
   
-      <main className="desktop95" style={{ position: "relative", isolation: "isolate", transform: `scale(${scale})`,
-      transformOrigin: "top left",}}>
+      <main className="desktop95" style={{ position: "relative", isolation: "isolate"}}>
 
 
 
