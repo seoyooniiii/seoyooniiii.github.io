@@ -58,14 +58,14 @@ const [malwareAlertOpen, setMalwareAlertOpen] = useState(false);
 
   const [wins, setWins] = useState<Record<AppKey, Win>>({
     paint: { key: "paint", title: "Paint", open:true, minimized: false, x: 210, y: 90, z: 10 },
-    museum: { key: "museum", title: "Digital Museum", open:true, minimized: true, x: 200, y: 75, z: 2, w: 1200, h: 820 },
+    museum: { key: "museum", title: "Digital Museum", open:false, minimized: true, x: 200, y: 75, z: 2, w: 1200, h: 820 },
 
     journal: { key: "journal", title: "Journal", open:true, minimized: false, x: 340, y: 170, z: 11 },
-    about: { key: "about", title: "About", open:true, minimized: true, x: 410, y: 120, z: 4 },
-    modeling: { key: "modeling", title: "3D Modeling", open:true, minimized: true, x: 480, y: 150, z: 5 },
+    about: { key: "about", title: "About", open:false, minimized: true, x: 410, y: 120, z: 4 },
+    modeling: { key: "modeling", title: "3D Modeling", open:false, minimized: true, x: 480, y: 150, z: 5 },
     video: {
   key: "video",
-  title: "Visual Video", open:true, 
+  title: "Visual Video", open:false, 
   minimized: true,
   x: 520,
   y: 150,
