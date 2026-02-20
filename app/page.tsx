@@ -120,22 +120,24 @@ const closeDesktopVideo = () => setDesktopVideo(null);
     document.head.appendChild(s);
   }, []);
 
-  // ✅ (선택) taskbar가 3D 오버레이에 덮이지 않도록 inline z-index 보강
-  // CSS 파일을 건드리지 않고도 안전하게 유지하려고 여기서 style로 올려둠.
-  const taskbarStyle: React.CSSProperties = {
-  position: "fixed",
-  left: 0,
-  right: 0,
-  bottom: 0,
-  zIndex: 10000,
-  paddingBottom: "env(safe-area-inset-bottom)",
-};
+  
+const [isMobile, setIsMobile] = useState(false);
 
-
+useEffect(() => {
+  const mql = window.matchMedia("(max-width: 768px)");
+  const apply = () => setIsMobile(mql.matches);
+  apply();
+  mql.addEventListener("change", apply);
+  return () => mql.removeEventListener("change", apply);
+}, []);
 
 const [scale, setScale] = useState(1);
 
 useEffect(() => {
+  if (!isMobile) {
+    setScale(1);
+    return;
+  }
   const update = () => {
     const s = Math.min(1, window.innerWidth / 1280);
     setScale(s);
@@ -143,7 +145,7 @@ useEffect(() => {
   update();
   window.addEventListener("resize", update);
   return () => window.removeEventListener("resize", update);
-}, []);
+}, [isMobile]);
 
   const focusWindow = (key: AppKey) => {
     setWins((prev) => {
@@ -180,15 +182,7 @@ useEffect(() => {
     setWins((prev) => ({ ...prev, [key]: { ...prev[key], x, y } }));
   };
 
-  const [isMobile, setIsMobile] = useState(false);
-
-useEffect(() => {
-  const mql = window.matchMedia("(max-width: 768px)");
-  const apply = () => setIsMobile(mql.matches);
-  apply();
-  mql.addEventListener("change", apply);
-  return () => mql.removeEventListener("change", apply);
-}, []);
+  
 
 
 
@@ -213,8 +207,14 @@ useEffect(() => {
 
 <div className="viewport95">
   <div className="crt95">
-      <main className="desktop desktop95" style={{ position: "relative", isolation: "isolate", transform: isMobile ? `scale(${scale})` : "none",
-  transformOrigin: "top left",}}>
+     <div
+      className="desktopStage"
+      style={{
+        transform: isMobile ? `scale(${scale})` : "none",
+        transformOrigin: "top left",
+      }}
+    >
+      <main className="desktop desktop95" style={{ position: "relative", isolation: "isolate"}}>
 
 
 
@@ -397,8 +397,12 @@ useEffect(() => {
 )}
 
         {/* Taskbar: 부팅 끝난 뒤에만 */}
-        {!booting && (
-          <div className="taskbar" style={taskbarStyle}>
+        
+      </main>
+    </div>
+
+    {!booting && (
+          <div className="taskbar taskbarFixed">
             <button className="startbtn">Start</button>
             
 
@@ -456,9 +460,8 @@ useEffect(() => {
           </div>
           
         )}
-      </main>
-    </div>
   </div>
+</div>
 
       {/* ✅ 데스크탑을 "뚫고" 올라오는 3D 오버레이 */}
       {desktopModel && <DesktopModelOverlay model={desktopModel} onClose={closeDesktopModel} />}
@@ -531,15 +534,7 @@ useEffect(() => {
 }
 
 
-/* 모바일에서 데스크탑 화면을 통째로 축소해서 넣기 */
-.viewport95 {
-  position: relative;
-  width: 100vw;
-  height: 100dvh;
-  overflow: auto;
-  /* iOS safe area */
-  padding-bottom: env(safe-area-inset-bottom);
-}
+
 
 /* CRT scanline */
 .viewport95::after {
@@ -567,21 +562,43 @@ useEffect(() => {
   box-shadow: inset 0 0 40px rgba(0,0,0,0.25);
 }
 
-/* PC 기본: 화면 꽉 */
-.desktop95 {
+.viewport95{
+  position: relative;
   width: 100vw;
-  min-height: 900px;
-  transform: none;
+  height: 100dvh;
+  overflow: hidden;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.crt95{
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* ✅ 내용 캔버스 */
+.desktopStage{
+  position: relative;
+  width: 100%;
+  height: 100%;
   transform-origin: top left;
 }
 
-/* 화면이 좁으면 자동으로 축소 */
+.desktop95{
+  width: 100%;
+  height: 100%;
+  min-height: 100dvh;
+}
 
-  .viewport95 {
-    overflow: auto; /* 필요하면 스크롤도 허용 */
-    -webkit-overflow-scrolling: touch;
-  }
-
+/* ✅ taskbar는 진짜 화면 바닥 */
+.taskbarFixed{
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10000;
+  padding-bottom: env(safe-area-inset-bottom);
+}
 
 
 
