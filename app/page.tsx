@@ -743,14 +743,102 @@ const toggleFullscreen = (key: AppKey) => {
   }
 
   .icon img {
-    width: 42px;   /* (선택) 아이콘 크기 조금 키우기 */
-    height: 42px;  /* (선택) 아이콘 크기 조금 키우기 */
+    width: 42px;
+    height: 42px;
   }
 
   .icon span {
     font-size: 12px;
     line-height: 1.1;
   }
+} /* ✅ 여기서 정확히 media 닫기 */
+
+/* =========================
+   Win98 Chunky 3D Scrollbar
+   (Chrome/Edge/Safari)
+========================= */
+
+
+
+.win98-scroll::-webkit-scrollbar {
+  width: 20px;
+  height: 20px;
+  background: #c0c0c0;
+}
+
+.win98-scroll::-webkit-scrollbar-track {
+  background: #c0c0c0;
+  border: 1px solid #000;
+  box-shadow: inset 1px 1px #ffffff, inset -1px -1px #808080;
+}
+
+.win98-scroll::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border: 1px solid #000;
+  box-shadow: inset 2px 2px #ffffff, inset -2px -2px #808080;
+}
+
+.win98-scroll::-webkit-scrollbar-thumb:vertical { min-height: 34px; }
+.win98-scroll::-webkit-scrollbar-thumb:horizontal { min-width: 34px; }
+
+.win98-scroll::-webkit-scrollbar-corner {
+  background: #c0c0c0;
+  border: 1px solid #000;
+  box-shadow: inset 1px 1px #ffffff, inset -1px -1px #808080;
+}
+
+.win98-scroll::-webkit-scrollbar-button {
+  width: 20px;
+  height: 20px;
+  background: #c0c0c0;
+  border: 1px solid #000;
+  box-shadow: inset 2px 2px #ffffff, inset -2px -2px #808080;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 9px 9px;
+}
+
+.win98-scroll::-webkit-scrollbar-button:active,
+.win98-scroll::-webkit-scrollbar-thumb:active {
+  box-shadow: inset 2px 2px #808080, inset -2px -2px #ffffff;
+}
+
+.win98-scroll::-webkit-scrollbar-button:vertical:decrement {
+  background-image:
+    linear-gradient(135deg, transparent 50%, #000 50%),
+    linear-gradient(225deg, transparent 50%, #000 50%);
+  background-size: 7px 7px, 7px 7px;
+  background-position: 7px 11px, 12px 11px;
+}
+
+.win98-scroll::-webkit-scrollbar-button:vertical:increment {
+  background-image:
+    linear-gradient(315deg, transparent 50%, #000 50%),
+    linear-gradient(45deg, transparent 50%, #000 50%);
+  background-size: 7px 7px, 7px 7px;
+  background-position: 7px 8px, 12px 8px;
+}
+
+.win98-scroll::-webkit-scrollbar-button:horizontal:decrement {
+  background-image:
+    linear-gradient(45deg, transparent 50%, #000 50%),
+    linear-gradient(135deg, transparent 50%, #000 50%);
+  background-size: 7px 7px, 7px 7px;
+  background-position: 11px 7px, 11px 12px;
+}
+
+.win98-scroll::-webkit-scrollbar-button:horizontal:increment {
+  background-image:
+    linear-gradient(225deg, transparent 50%, #000 50%),
+    linear-gradient(315deg, transparent 50%, #000 50%);
+  background-size: 7px 7px, 7px 7px;
+  background-position: 8px 7px, 8px 12px;
+}
+
+/* Firefox (근접) */
+.win98-scroll {
+  scrollbar-width: auto;
+  scrollbar-color: #808080 #c0c0c0;
 }
 
 
@@ -919,7 +1007,8 @@ function WindowFrame({
 </div>
 
       <div
-  className="window-body"
+  className={`window-body win98-scroll`}
+
   style={{
     height: win.h ? `calc(${win.h}px - 28px)` : undefined,
     overflow: "auto",                 // ✅ hidden → auto
@@ -1318,13 +1407,14 @@ function DigitalMuseum() {
 
   return (
     <div
+    className="win98-scroll"
       style={{
         height: "100%", // ✅ 창 내부를 꽉 채움
-        overflowY: "auto",
         padding: 14,
         background: "#fff",
         border: "1px solid #000",
         boxShadow: "inset -2px -2px #c0c0c0, inset 2px 2px #808080",
+        overflowY: "auto"
       }}
     >
       <div
@@ -1703,13 +1793,9 @@ function MuseumShell({
   if (view === "tunnel") {
     return (
       <div style={{ height: "100%" }}>
-        {/* 상단 작은 네비 */}
         <div style={{ padding: 8, display: "flex", gap: 8 }}>
-          <button className="task" onClick={onBackToFiles}>
-            ← Back
-          </button>
+          <button className="task" onClick={onBackToFiles}>← Back</button>
         </div>
-
         <div style={{ height: "calc(100% - 44px)" }}>
           <DigitalMuseum />
         </div>
@@ -1717,57 +1803,222 @@ function MuseumShell({
     );
   }
 
-  // ✅ 파일 목록 화면
+  // ✅ Control Panel 스타일 "files" 화면
+  const openItem = (fn: () => void) => {
+    if (isMobile) fn();
+    else onHint(); // PC 단일 클릭은 힌트, 더블클릭은 아래에서 처리
+  };
+
   return (
-    <div style={{ padding: 12, fontSize: 13 }}>
+    <div style={{ height: "100%", background: "#c0c0c0" }}>
+      {/* 메뉴바 (File/Edit/...) */}
+      <div style={{ padding: "4px 6px", fontSize: 12, display: "flex", gap: 14 }}>
+        <span>File</span>
+        <span>Edit</span>
+        <span>View</span>
+        <span>Go</span>
+        <span>Favorites</span>
+        <span>Help</span>
+      </div>
+
+      {/* 툴바 */}
       <div
         style={{
-          fontWeight: 900,
-          marginBottom: 12,
-          fontSize: 26,
-          letterSpacing: 0.5,
+          padding: 6,
+          borderTop: "1px solid #fff",
+          borderBottom: "1px solid #808080",
+          boxShadow: "inset 0 1px #fff",
+          display: "flex",
+          gap: 8,
+          alignItems: "center",
+          fontSize: 12,
         }}
       >
-        Digital Museum
+        <button className="task" style={{ fontSize: 12 }}>Back</button>
+        <button className="task" style={{ fontSize: 12 }}>Forward</button>
+        <button className="task" style={{ fontSize: 12 }}>Up</button>
+        <div style={{ width: 10 }} />
+        <button className="task" style={{ fontSize: 12 }}>Folders</button>
+        <button className="task" style={{ fontSize: 12 }}>Views</button>
       </div>
 
-      <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-        {/* 가짜 악성코드 */}
+      {/* 주소줄 */}
+      <div
+        style={{
+          padding: 6,
+          display: "flex",
+          gap: 8,
+          alignItems: "center",
+          fontSize: 12,
+        }}
+      >
+        <div style={{ width: 60, color: "#000" }}>Address</div>
         <div
-          className="icon"
-          style={{ width: 120 }}
-          onPointerUp={(e) => {
-            if (e.button !== 0) return;
-            if (isMobile) onTriggerMalware(); // ✅ 모바일: 한 번 탭 = 열기(경고)
-            else onHint();                    // ✅ PC: 한 번 클릭 = 힌트
-          }}
-          onDoubleClick={() => {
-            if (!isMobile) onTriggerMalware(); // ✅ PC: 더블클릭 = 열기(경고)
+          style={{
+            flex: 1,
+            height: 22,
+            background: "#fff",
+            border: "1px solid #000",
+            boxShadow: "inset -1px -1px #c0c0c0, inset 1px 1px #808080",
+            display: "flex",
+            alignItems: "center",
+            padding: "0 8px",
           }}
         >
-          <img src="/icons/Files.png" alt="" draggable={false} style={{ pointerEvents: "none" }} />
-          <span style={{ pointerEvents: "none" }}>MALWARE.exe</span>
-        </div>
-        {/* tunnel 드로잉 */}
-        <div
-          className="icon"
-          style={{ width: 120 }}
-           onPointerUp={(e) => {
-            if (e.button !== 0) return;
-            if (isMobile) onOpenTunnel(); // ✅ 모바일: 한 번 탭 = 열기
-            else onHint();                // ✅ PC: 한 번 클릭 = 힌트
-          }}
-          onDoubleClick={() => {
-            if (!isMobile) onOpenTunnel(); // ✅ PC: 더블클릭 = 열기
-          }}
-        >
-          <img src="/icons/Files.png" alt="" draggable={false} style={{ pointerEvents: "none" }} />
-          <span style={{ pointerEvents: "none" }}>tunnel_drawings</span>
+          Control Panel \ Digital Museum
         </div>
       </div>
 
-      <div style={{ marginTop: 14, fontSize: 12, opacity: 0.75 }}>
-        Double-click to open
+      {/* 본문 2단 레이아웃 */}
+      <div
+        style={{
+          height: "calc(100% - 22px - 34px - 34px)", // 메뉴/툴바/주소줄 대충 제외
+          display: "grid",
+          gridTemplateColumns: "220px 1fr",
+          gap: 10,
+          padding: 10,
+          background: "#c0c0c0",
+        }}
+      >
+        {/* 왼쪽 네비 패널 */}
+        <div
+          style={{
+            background: "#fff",
+            border: "1px solid #000",
+            boxShadow: "inset -2px -2px #c0c0c0, inset 2px 2px #808080",
+            padding: 10,
+            fontSize: 12,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <img src="/icons/museum.png" alt="" width={28} height={28} />
+            <div style={{ fontWeight: 900, fontSize: 14 }}>Control Panel</div>
+          </div>
+
+          <div style={{ lineHeight: 1.35, color: "#000" }}>
+            Use the settings in Digital Museum to explore the works.
+          </div>
+
+          <div style={{ marginTop: 12, color: "#000080", textDecoration: "underline", cursor: "pointer" }}>
+            View all museum options
+          </div>
+
+          <div style={{ marginTop: 12, color: "#000080", textDecoration: "underline", cursor: "pointer" }}>
+            Windows Update
+          </div>
+          <div style={{ marginTop: 6, color: "#000080", textDecoration: "underline", cursor: "pointer" }}>
+            Technical Support
+          </div>
+        </div>
+
+        {/* 오른쪽 컨텐츠 패널 */}
+        <div
+        className="win98-scroll"
+          style={{
+            position: "relative",
+            background: "#fff",
+            border: "1px solid #000",
+            boxShadow: "inset -2px -2px #c0c0c0, inset 2px 2px #808080",
+          }}
+        >
+          {/* 워터마크(기어) 느낌: 이미지 없으면 그라데이션으로 대체 */}
+          <div
+            style={{
+              position: "absolute",
+              right: -20,
+              bottom: -40,
+              width: 420,
+              height: 420,
+              opacity: 0.14,
+              background:
+                "radial-gradient(circle at 40% 40%, #6aa8ff 0 38%, transparent 40%), radial-gradient(circle at 70% 70%, #6aa8ff 0 30%, transparent 32%)",
+              pointerEvents: "none",
+              filter: "blur(0px)",
+            }}
+          />
+
+          <div style={{ padding: 14 }}>
+            <div style={{ fontWeight: 900, fontSize: 18, marginBottom: 12 }}>
+              Digital Museum
+            </div>
+
+            <ControlRow
+              icon="/icons/Files.png"
+              title="Tunnel Drawings"
+              desc="A tunnel that takes you somewhere nice."
+              onSingle={() => openItem(onOpenTunnel)}
+              onDouble={() => { if (!isMobile) onOpenTunnel(); }}
+            />
+
+            <ControlRow
+              icon="/icons/Files.png"
+              title="MALWARE.exe"
+              desc="Suspicious file detected. Execution may be blocked."
+              onSingle={() => openItem(onTriggerMalware)}
+              onDouble={() => { if (!isMobile) onTriggerMalware(); }}
+              danger
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** ✅ 제어판 리스트 한 줄(아이콘 + 제목 + 설명) */
+function ControlRow({
+  icon,
+  title,
+  desc,
+  onSingle,
+  onDouble,
+  danger = false,
+}: {
+  icon: string;
+  title: string;
+  desc: string;
+  onSingle: () => void;
+  onDouble: () => void;
+  danger?: boolean;
+}) {
+  return (
+    <div
+      onPointerUp={(e) => { if (e.button === 0) onSingle(); }}
+      onDoubleClick={onDouble}
+      style={{
+        display: "grid",
+        gridTemplateColumns: "44px 1fr",
+        gap: 10,
+        padding: "10px 8px",
+        borderRadius: 2,
+        cursor: "default",
+        userSelect: "none",
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLDivElement).style.background = "#e9f0ff";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLDivElement).style.background = "transparent";
+      }}
+    >
+      <div style={{ display: "grid", placeItems: "start center" }}>
+        <img src={icon} alt="" width={32} height={32} draggable={false} />
+      </div>
+
+      <div>
+        <div
+          style={{
+            color: "#000080",
+            fontWeight: 800,
+            textDecoration: "underline",
+            fontSize: 13,
+          }}
+        >
+          {title}
+        </div>
+        <div style={{ marginTop: 3, fontSize: 12, color: danger ? "#7a0000" : "#333" }}>
+          {desc}
+        </div>
       </div>
     </div>
   );
