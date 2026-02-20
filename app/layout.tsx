@@ -20,6 +20,12 @@ const mono = IBM_Plex_Mono({
   variable: "--font-mono",
 });
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export const metadata: Metadata = {
   title: "seoyooniiii",
   description: "Portfolio + journal",

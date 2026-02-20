@@ -42,11 +42,6 @@ const handleFirstIconClickHint = () => {
   }, 1000);
 };
 
-useEffect(() => {
-  return () => {
-    if (dblHintTimerRef.current) window.clearTimeout(dblHintTimerRef.current);
-  };
-}, []);
 
 useEffect(() => {
   return () => {
@@ -128,13 +123,27 @@ const closeDesktopVideo = () => setDesktopVideo(null);
   // ✅ (선택) taskbar가 3D 오버레이에 덮이지 않도록 inline z-index 보강
   // CSS 파일을 건드리지 않고도 안전하게 유지하려고 여기서 style로 올려둠.
   const taskbarStyle: React.CSSProperties = {
-  position: "absolute",
+  position: "fixed",
   left: 0,
   right: 0,
   bottom: 0,
   zIndex: 10000,
+  paddingBottom: "env(safe-area-inset-bottom)",
 };
 
+
+
+const [scale, setScale] = useState(1);
+
+useEffect(() => {
+  const update = () => {
+    const s = Math.min(1, window.innerWidth / 1280);
+    setScale(s);
+  };
+  update();
+  window.addEventListener("resize", update);
+  return () => window.removeEventListener("resize", update);
+}, []);
 
   const focusWindow = (key: AppKey) => {
     setWins((prev) => {
@@ -171,6 +180,18 @@ const closeDesktopVideo = () => setDesktopVideo(null);
     setWins((prev) => ({ ...prev, [key]: { ...prev[key], x, y } }));
   };
 
+  const [isMobile, setIsMobile] = useState(false);
+
+useEffect(() => {
+  const mql = window.matchMedia("(max-width: 768px)");
+  const apply = () => setIsMobile(mql.matches);
+  apply();
+  mql.addEventListener("change", apply);
+  return () => mql.removeEventListener("change", apply);
+}, []);
+
+
+
   return (
     <>
       {/* Boot screen overlay (처음 3초) */}
@@ -192,7 +213,9 @@ const closeDesktopVideo = () => setDesktopVideo(null);
 
 <div className="viewport95">
   <div className="crt95">
-      <main className="desktop desktop95" style={{ position: "relative", isolation: "isolate" }}>
+      <main className="desktop desktop95" style={{ position: "relative", isolation: "isolate", transform: isMobile ? `scale(${scale})` : "none",
+  transformOrigin: "top left",}}>
+
 
 
         {/* Desktop video background */}
@@ -219,32 +242,36 @@ const closeDesktopVideo = () => setDesktopVideo(null);
         {/* Desktop icons */}
         <div style={{ position: "absolute", top: 18, left: 18, zIndex: 2 }}>
 
-          <DesktopIcon label="Paint" iconSrc="/icons/paint.png" onOpen={() => openWindow("paint")} onFirstClick={handleFirstIconClickHint}/>
+          <DesktopIcon label="Paint" iconSrc="/icons/paint.png" isMobile={isMobile} onOpen={() => openWindow("paint")} onHint={handleFirstIconClickHint}/>
           <DesktopIcon
   label="Digital Museum"
   iconSrc="/icons/museum.png"
+  isMobile={isMobile}
   onOpen={() => {
     setMuseumConfirmOpen(true); 
-  }} onFirstClick={handleFirstIconClickHint}
+  }} onHint={handleFirstIconClickHint}
 />
 
           <DesktopIcon
             label="Journal"
             iconSrc="/icons/journal.png"
-            onOpen={() => openWindow("journal")} onFirstClick={handleFirstIconClickHint}
+            isMobile={isMobile}
+            onOpen={() => openWindow("journal")} onHint={handleFirstIconClickHint}
           />
-          <DesktopIcon label="About" iconSrc="/icons/about.png" onOpen={() => openWindow("about")} onFirstClick={handleFirstIconClickHint}/>
+          <DesktopIcon label="About" iconSrc="/icons/about.png" isMobile={isMobile} onOpen={() => openWindow("about")} onHint={handleFirstIconClickHint}/>
 
           {/* 3D Modeling 아이콘 */}
           <DesktopIcon
             label="3D Modeling"
             iconSrc={"/icons/3D modeling.png"}
-            onOpen={() => openWindow("modeling")} onFirstClick={handleFirstIconClickHint}
+            isMobile={isMobile}
+            onOpen={() => openWindow("modeling")} onHint={handleFirstIconClickHint}
           />
           <DesktopIcon
   label="Visual"
   iconSrc="/icons/video.png"
-  onOpen={() => openWindow("video")} onFirstClick={handleFirstIconClickHint}
+  isMobile={isMobile}
+  onOpen={() => openWindow("video")} onHint={handleFirstIconClickHint}
 />
 
         </div>
@@ -256,6 +283,7 @@ const closeDesktopVideo = () => setDesktopVideo(null);
         {!wins.paint.minimized && (
           <WindowFrame
             win={wins.paint}
+            isMobile={isMobile}
             onFocus={() => focusWindow("paint")}
             onClose={() => closeWindow("paint")}
             onMove={(x, y) => moveWindow("paint", x, y)}
@@ -266,6 +294,7 @@ const closeDesktopVideo = () => setDesktopVideo(null);
         {!wins.museum.minimized && (
           <WindowFrame
             win={wins.museum}
+            isMobile={isMobile}
            onFocus={() => focusWindow("museum")}
             onClose={() => closeWindow("museum")}
            onMove={(x, y) => moveWindow("museum", x, y)}
@@ -276,6 +305,7 @@ const closeDesktopVideo = () => setDesktopVideo(null);
   onBackToFiles={() => setMuseumView("files")}
   onTriggerMalware={() => setMalwareAlertOpen(true)}
   onHint={handleFirstIconClickHint}
+  isMobile={isMobile}
 />
 
            </WindowFrame>
@@ -286,6 +316,7 @@ const closeDesktopVideo = () => setDesktopVideo(null);
         {!wins.journal.minimized && (
           <WindowFrame
             win={wins.journal}
+            isMobile={isMobile}
             onFocus={() => focusWindow("journal")}
             onClose={() => closeWindow("journal")}
             onMove={(x, y) => moveWindow("journal", x, y)}
@@ -308,6 +339,7 @@ const closeDesktopVideo = () => setDesktopVideo(null);
         {!wins.about.minimized && (
   <WindowFrame
     win={wins.about}
+    isMobile={isMobile}
     onFocus={() => focusWindow("about")}
     onClose={() => closeWindow("about")}
     onMove={(x, y) => moveWindow("about", x, y)}
@@ -323,6 +355,7 @@ const closeDesktopVideo = () => setDesktopVideo(null);
         {!wins.modeling.minimized && (
           <WindowFrame
             win={wins.modeling}
+            isMobile={isMobile}
             onFocus={() => focusWindow("modeling")}
             onClose={() => closeWindow("modeling")}
             onMove={(x, y) => moveWindow("modeling", x, y)}
@@ -335,6 +368,7 @@ const closeDesktopVideo = () => setDesktopVideo(null);
         {!wins.video.minimized && (
   <WindowFrame
     win={wins.video}
+    isMobile={isMobile}
     onFocus={() => focusWindow("video")}
     onClose={() => closeWindow("video")}
     onMove={(x, y) => moveWindow("video", x, y)}
@@ -496,11 +530,24 @@ const closeDesktopVideo = () => setDesktopVideo(null);
   position: relative;
 }
 
-.crt95::after {
+
+/* 모바일에서 데스크탑 화면을 통째로 축소해서 넣기 */
+.viewport95 {
+  position: relative;
+  width: 100vw;
+  height: 100dvh;
+  overflow: auto;
+  /* iOS safe area */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* CRT scanline */
+.viewport95::after {
   content: "";
-  position: absolute;
+  position: fixed;
   inset: 0;
   pointer-events: none;
+  z-index: 9000; /* 창(z 10~)보다 위, taskbar(10000)보단 아래로 두고 싶으면 9999 아래 */
   background: repeating-linear-gradient(
     to bottom,
     rgba(0,0,0,0.03) 0px,
@@ -510,15 +557,56 @@ const closeDesktopVideo = () => setDesktopVideo(null);
   );
 }
 
-/* 살짝 색 번짐 */
-.crt95::before {
+/* vignette / bloom */
+.viewport95::before {
   content: "";
-  position: absolute;
+  position: fixed;
   inset: 0;
   pointer-events: none;
+  z-index: 8999;
   box-shadow: inset 0 0 40px rgba(0,0,0,0.25);
 }
 
+/* PC 기본: 화면 꽉 */
+.desktop95 {
+  width: 100vw;
+  min-height: 900px;
+  transform: none;
+  transform-origin: top left;
+}
+
+/* 화면이 좁으면 자동으로 축소 */
+
+  .viewport95 {
+    overflow: auto; /* 필요하면 스크롤도 허용 */
+    -webkit-overflow-scrolling: touch;
+  }
+
+
+
+
+  
+
+  /* ✅ 모바일에서 더블탭 확대(zoom) 줄이기 */
+.desktop95, .icon, button {
+  touch-action: manipulation;
+}
+  /* ✅ 모바일에서 아이콘 터치 영역 확대 */
+@media (max-width: 768px) {
+  .icon {
+    padding: 6px;
+  }
+
+  .icon img {
+    width: 42px;   /* (선택) 아이콘 크기 조금 키우기 */
+    height: 42px;  /* (선택) 아이콘 크기 조금 키우기 */
+  }
+
+  .icon span {
+    font-size: 12px;
+    line-height: 1.1;
+  }
+}
 
 
 
@@ -533,27 +621,44 @@ function DesktopIcon({
   label,
   iconSrc,
   onOpen,
-  onFirstClick,
+  onHint,
+  isMobile,
 }: {
   label: string;
   iconSrc: string;
   onOpen: () => void;
-  onFirstClick?: () => void;
+  onHint?: () => void;
+  isMobile: boolean;
 }) {
+  const onSingle = () => {
+    if (isMobile) {
+      onOpen();        // ✅ 모바일: 한 번 탭 = 열기
+    } else {
+      onHint?.();      // ✅ PC: 한 번 클릭 = 안내 토스트
+    }
+  };
+
   return (
     <div
       className="icon"
-      onPointerDownCapture={(e) => {
-        if (e.button === 0) onFirstClick?.(); // 왼쪽 클릭마다 토스트
+      onPointerUp={(e) => {
+        // 왼쪽 클릭/탭만
+        if (e.button === 0) onSingle();
       }}
-      onDoubleClick={onOpen}
+      onDoubleClick={() => {
+        if (!isMobile) onOpen();  // ✅ PC: 더블클릭 = 열기
+      }}
     >
-      <img src={iconSrc} alt="" draggable={false} style={{ pointerEvents: "none" }} />
+      <img
+        src={iconSrc}
+        alt=""
+        draggable={false}
+        style={{ pointerEvents: "none" }}
+      />
       <span style={{ pointerEvents: "none" }}>{label}</span>
     </div>
   );
 }
-
 
 
 function WindowFrame({
@@ -562,17 +667,19 @@ function WindowFrame({
   onClose,
   onMove,
   children,
+  isMobile = false, 
 }: {
   win: { title: string; x: number; y: number; z: number; w?: number; h?: number; closing?: boolean };
   onFocus: () => void;
   onClose: () => void;
   onMove: (x: number, y: number) => void;
   children: React.ReactNode;
+  isMobile?: boolean;
 }) {
   const drag = useRef({ dragging: false, ox: 0, oy: 0 });
 
   const onPointerDownTitle = (e: React.PointerEvent) => {
-  // ✅ 버튼(닫기) 누른 경우엔 드래그 시작하지 않음
+  if (isMobile) return; // ✅ 버튼(닫기) 누른 경우엔 드래그 시작하지 않음
   if ((e.target as HTMLElement).closest("button")) return;
 
   onFocus();
@@ -586,6 +693,7 @@ function WindowFrame({
 
 
   const onPointerMoveTitle = (e: React.PointerEvent) => {
+    if (isMobile) return;
     if (!drag.current.dragging) return;
     onMove(e.clientX - drag.current.ox, e.clientY - drag.current.oy);
   };
@@ -598,15 +706,15 @@ function WindowFrame({
     } catch {}
   };
 
-  return (
+   return (
     <div
       className={`window ${win.closing ? "closing" : ""}`}
       style={{
-        left: win.x,
-        top: win.y,
+        left: isMobile ? 0 : win.x,
+        top: isMobile ? 0 : win.y,
         zIndex: win.z,
-        width: win.w ? `${win.w}px` : undefined,
-        height: win.h ? `${win.h}px` : undefined,
+        width: isMobile ? "100vw" : (win.w ? `${win.w}px` : undefined),
+        height: isMobile ? "calc(100dvh - 48px)" : (win.h ? `${win.h}px` : undefined), // taskbar 고려
       }}
       onMouseDown={onFocus}
     ><div
@@ -649,7 +757,8 @@ function WindowFrame({
   className="window-body"
   style={{
     height: win.h ? `calc(${win.h}px - 28px)` : undefined,
-    overflow: "hidden",
+    overflow: "auto",                 // ✅ hidden → auto
+    WebkitOverflowScrolling: "touch", // ✅ iOS 부드러운 스크롤
     position: "relative",
     zIndex: 0,
   }}
@@ -1415,12 +1524,14 @@ function MuseumShell({
   onBackToFiles,
   onTriggerMalware,
   onHint,
+  isMobile,
 }: {
   view: "files" | "tunnel";
   onOpenTunnel: () => void;
   onBackToFiles: () => void;
   onTriggerMalware: () => void;
   onHint: () => void;
+  isMobile: boolean;
 }) {
   if (view === "tunnel") {
     return (
@@ -1458,25 +1569,33 @@ function MuseumShell({
         <div
           className="icon"
           style={{ width: 120 }}
-          onClickCapture={onHint}
-          onDoubleClick={onTriggerMalware}
-          title="Do not run"
+          onPointerUp={(e) => {
+            if (e.button !== 0) return;
+            if (isMobile) onTriggerMalware(); // ✅ 모바일: 한 번 탭 = 열기(경고)
+            else onHint();                    // ✅ PC: 한 번 클릭 = 힌트
+          }}
+          onDoubleClick={() => {
+            if (!isMobile) onTriggerMalware(); // ✅ PC: 더블클릭 = 열기(경고)
+          }}
         >
-          {/* ✅ 경로 수정: /icons/ad/guide.png → /ad/guide.png */}
-          <img src="/icons/Files.png" alt="" />
-          <span>MALWARE.exe</span>
+          <img src="/icons/Files.png" alt="" draggable={false} style={{ pointerEvents: "none" }} />
+          <span style={{ pointerEvents: "none" }}>MALWARE.exe</span>
         </div>
-
         {/* tunnel 드로잉 */}
         <div
           className="icon"
           style={{ width: 120 }}
-          onClickCapture={onHint}
-          onDoubleClick={onOpenTunnel}
-          title="Open tunnel drawings"
+           onPointerUp={(e) => {
+            if (e.button !== 0) return;
+            if (isMobile) onOpenTunnel(); // ✅ 모바일: 한 번 탭 = 열기
+            else onHint();                // ✅ PC: 한 번 클릭 = 힌트
+          }}
+          onDoubleClick={() => {
+            if (!isMobile) onOpenTunnel(); // ✅ PC: 더블클릭 = 열기
+          }}
         >
-          <img src="/icons/Files.png" alt="" />
-          <span>tunnel_drawings</span>
+          <img src="/icons/Files.png" alt="" draggable={false} style={{ pointerEvents: "none" }} />
+          <span style={{ pointerEvents: "none" }}>tunnel_drawings</span>
         </div>
       </div>
 
@@ -1486,3 +1605,4 @@ function MuseumShell({
     </div>
   );
 }
+
