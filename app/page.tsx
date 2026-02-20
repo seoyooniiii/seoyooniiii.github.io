@@ -206,15 +206,9 @@ useEffect(() => {
       )}
 
 <div className="viewport95">
-  <div className="crt95">
-     <div
-      className="desktopStage"
-      style={{
-        transform: isMobile ? `scale(${scale})` : "none",
-        transformOrigin: "top left",
-      }}
-    >
-      <main className="desktop desktop95" style={{ position: "relative", isolation: "isolate"}}>
+  
+      <main className="desktop95" style={{ position: "relative", isolation: "isolate", transform: `scale(${scale})`,
+      transformOrigin: "top left",}}>
 
 
 
@@ -399,7 +393,7 @@ useEffect(() => {
         {/* Taskbar: 부팅 끝난 뒤에만 */}
         
       </main>
-    </div>
+    
 
     {!booting && (
           <div className="taskbar taskbarFixed">
@@ -460,7 +454,6 @@ useEffect(() => {
           </div>
           
         )}
-  </div>
 </div>
 
       {/* ✅ 데스크탑을 "뚫고" 올라오는 3D 오버레이 */}
@@ -570,27 +563,11 @@ useEffect(() => {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-.crt95{
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-/* ✅ 내용 캔버스 */
-.desktopStage{
-  position: relative;
-  width: 100%;
-  height: 100%;
-  transform-origin: top left;
-}
-
 .desktop95{
-  width: 100%;
-  height: 100%;
-  min-height: 100dvh;
-}
+  width: 100vw;
+  height: 100dvh;            /* 또는 100% */
+  padding-bottom: 48px; }
 
-/* ✅ taskbar는 진짜 화면 바닥 */
 .taskbarFixed{
   position: fixed;
   left: 0;
@@ -599,7 +576,6 @@ useEffect(() => {
   z-index: 10000;
   padding-bottom: env(safe-area-inset-bottom);
 }
-
 
 
   
