@@ -9,13 +9,15 @@ type AppKey = "paint" | "museum" | "journal" | "about" | "modeling" | "video";
 type Win = {
   key: AppKey;
   title: string;
+  open: boolean;
   minimized: boolean;
   x: number;
   y: number;
   z: number;
   w?: number;
   h?: number;
-  closing?: boolean; //
+  closing?: boolean;
+  fullscreen?: boolean; //
 
 };
 
@@ -55,15 +57,15 @@ const [malwareAlertOpen, setMalwareAlertOpen] = useState(false);
 
 
   const [wins, setWins] = useState<Record<AppKey, Win>>({
-    paint: { key: "paint", title: "Paint", minimized: false, x: 210, y: 90, z: 10 },
-    museum: { key: "museum", title: "Digital Museum", minimized: true, x: 200, y: 75, z: 2, w: 1200, h: 820 },
+    paint: { key: "paint", title: "Paint", open:true, minimized: false, x: 210, y: 90, z: 10 },
+    museum: { key: "museum", title: "Digital Museum", open:true, minimized: true, x: 200, y: 75, z: 2, w: 1200, h: 820 },
 
-    journal: { key: "journal", title: "Journal", minimized: false, x: 340, y: 170, z: 11 },
-    about: { key: "about", title: "About", minimized: true, x: 410, y: 120, z: 4 },
-    modeling: { key: "modeling", title: "3D Modeling", minimized: true, x: 480, y: 150, z: 5 },
+    journal: { key: "journal", title: "Journal", open:true, minimized: false, x: 340, y: 170, z: 11 },
+    about: { key: "about", title: "About", open:true, minimized: true, x: 410, y: 120, z: 4 },
+    modeling: { key: "modeling", title: "3D Modeling", open:true, minimized: true, x: 480, y: 150, z: 5 },
     video: {
   key: "video",
-  title: "Visual Video",
+  title: "Visual Video", open:true, 
   minimized: true,
   x: 520,
   y: 150,
@@ -131,36 +133,100 @@ useEffect(() => {
   return () => mql.removeEventListener("change", apply);
 }, []);
 
-  const focusWindow = (key: AppKey) => {
-    setWins((prev) => {
-      const nextZ = zTop + 1;
-      setZTop(nextZ);
-      return { ...prev, [key]: { ...prev[key], z: nextZ } };
-    });
-  };
+const openWindow = (key: AppKey) => {
+  setWins((prev) => {
+    const nextZ = zTop + 1;
+    setZTop(nextZ);
 
-  const openWindow = (key: AppKey) => {
-    setWins((prev) => {
-      const nextZ = zTop + 1;
-      setZTop(nextZ);
-      return { ...prev, [key]: { ...prev[key], minimized: false, z: nextZ } };
-    });
-  };
+    return {
+      ...prev,
+      [key]: {
+        ...prev[key],
+        open: true,          // ✅ 닫혔던 창도 다시 열 수 있게
+        minimized: false,
+        fullscreen: false,   // 선택: 열 때 풀스크린 해제
+        closing: false,
+        z: nextZ,
+      },
+    };
+  });
+};
 
-  const closeWindow = (key: AppKey) => {
-    if (key === "video") closeDesktopVideo();
+const closeWindow = (key: AppKey) => {
+  if (key === "video") closeDesktopVideo();
 
-  // 1) closing 상태로 애니메이션 시작
   setWins((prev) => ({ ...prev, [key]: { ...prev[key], closing: true } }));
 
-  // 2) 애니메이션 끝나면 minimized 처리
   window.setTimeout(() => {
     setWins((prev) => ({
       ...prev,
-      [key]: { ...prev[key], minimized: true, closing: false },
+      [key]: {
+        ...prev[key],
+        open: false,         // ✅ 작업표시줄에서도 사라짐
+        minimized: false,
+        fullscreen: false,
+        closing: false,
+      },
     }));
   }, 180);
 };
+
+const minimizeWindow = (key: AppKey) => {
+  setWins((prev) => ({
+    ...prev,
+    [key]: { ...prev[key], minimized: true, fullscreen: false },
+  }));
+};
+
+const restoreWindow = (key: AppKey) => {
+  setWins((prev) => {
+    const nextZ = zTop + 1;
+    setZTop(nextZ);
+
+    return {
+      ...prev,
+      [key]: {
+        ...prev[key],
+        open: true,
+        minimized: false,
+        fullscreen: false,
+        z: nextZ,
+      },
+    };
+  });
+};
+
+// (선택) 포커스 잡을 때 최소화였다면 자동 복원도 원하면:
+const focusWindow = (key: AppKey) => {
+  setWins((prev) => {
+    const nextZ = zTop + 1;
+    setZTop(nextZ);
+    return {
+      ...prev,
+      [key]: { ...prev[key], z: nextZ, minimized: false }, // ✅
+    };
+  });
+};
+  
+
+const toggleFullscreen = (key: AppKey) => {
+  setWins((prev) => {
+    const nextZ = zTop + 1;
+    setZTop(nextZ);
+    const cur = prev[key];
+    return {
+      ...prev,
+      [key]: {
+        ...cur,
+        fullscreen: !cur.fullscreen,
+        minimized: false,
+        z: nextZ,
+      },
+    };
+  });
+};
+
+
 
   const moveWindow = (key: AppKey, x: number, y: number) => {
     setWins((prev) => ({ ...prev, [key]: { ...prev[key], x, y } }));
@@ -257,23 +323,27 @@ useEffect(() => {
 
 
         {/* Windows */}
-        {!wins.paint.minimized && (
+           {wins.paint.open && (
           <WindowFrame
             win={wins.paint}
             isMobile={isMobile}
             onFocus={() => focusWindow("paint")}
             onClose={() => closeWindow("paint")}
+            onMinimize={() => minimizeWindow("paint")}             // ✅ 추가
+  onToggleFullscreen={() => toggleFullscreen("paint")}
             onMove={(x, y) => moveWindow("paint", x, y)}
-          >
+          > 
             <PaintApp />
-          </WindowFrame>
-        )}
-        {!wins.museum.minimized && (
+          </WindowFrame> )}
+        
+        {wins.museum.open && (
           <WindowFrame
             win={wins.museum}
             isMobile={isMobile}
            onFocus={() => focusWindow("museum")}
             onClose={() => closeWindow("museum")}
+            onMinimize={() => minimizeWindow("museum")}             // ✅ 추가
+  onToggleFullscreen={() => toggleFullscreen("museum")}
            onMove={(x, y) => moveWindow("museum", x, y)}
           >
              <MuseumShell
@@ -285,17 +355,19 @@ useEffect(() => {
   isMobile={isMobile}
 />
 
-           </WindowFrame>
-          )}
+           </WindowFrame>)}
+          
 
        
 
-        {!wins.journal.minimized && (
+        {wins.journal.open && (
           <WindowFrame
             win={wins.journal}
             isMobile={isMobile}
             onFocus={() => focusWindow("journal")}
             onClose={() => closeWindow("journal")}
+            onMinimize={() => minimizeWindow("journal")}             // ✅ 추가
+  onToggleFullscreen={() => toggleFullscreen("journal")}
             onMove={(x, y) => moveWindow("journal", x, y)}
           >
            <div style={{ fontSize: 13, lineHeight: 1.5 }}>
@@ -310,31 +382,35 @@ useEffect(() => {
   </div>
 </div>
 
-          </WindowFrame>
-        )}
+          </WindowFrame>)}
+        
 
-        {!wins.about.minimized && (
+        {wins.about.open && (
   <WindowFrame
     win={wins.about}
     isMobile={isMobile}
     onFocus={() => focusWindow("about")}
     onClose={() => closeWindow("about")}
+    onMinimize={() => minimizeWindow("about")}             // ✅ 추가
+  onToggleFullscreen={() => toggleFullscreen("about")}
     onMove={(x, y) => moveWindow("about", x, y)}
   >
     <div style={{ height: "100%", overflow: "auto" }}>
       <AboutSection onOk={() => closeWindow("about")} />
     </div>
-  </WindowFrame>
-)}
+  </WindowFrame>)}
+
 
 
         {/* 3D Modeling 창 */}
-        {!wins.modeling.minimized && (
+        {wins.modeling.open && (
           <WindowFrame
             win={wins.modeling}
             isMobile={isMobile}
             onFocus={() => focusWindow("modeling")}
             onClose={() => closeWindow("modeling")}
+            onMinimize={() => minimizeWindow("modeling")}             // ✅ 추가
+  onToggleFullscreen={() => toggleFullscreen("modeling")}
             onMove={(x, y) => moveWindow("modeling", x, y)}
           >
             {/* ✅ 파일 더블클릭 → 데스크탑에 모델 소환 */}
@@ -342,12 +418,14 @@ useEffect(() => {
           </WindowFrame>
         )}
 
-        {!wins.video.minimized && (
+        {wins.video.open && (
   <WindowFrame
     win={wins.video}
     isMobile={isMobile}
     onFocus={() => focusWindow("video")}
     onClose={() => closeWindow("video")}
+    onMinimize={() => minimizeWindow("video")}             // ✅ 추가
+  onToggleFullscreen={() => toggleFullscreen("video")}
     onMove={(x, y) => moveWindow("video", x, y)}
   >
     <VisualVideoApp
@@ -355,8 +433,8 @@ useEffect(() => {
   onStop={closeDesktopVideo}
 />
 
-  </WindowFrame>
-)}
+  </WindowFrame>)}
+
   
 {museumConfirmOpen && (
   <ConfirmModal
@@ -379,53 +457,39 @@ useEffect(() => {
     
 
     {!booting && (
-          <div className="taskbar taskbarFixed">
-            <button className="startbtn">Start</button>
-            
+  <div className="taskbar taskbarFixed">
+    <button className="startbtn">Start</button>
 
-            {!wins.paint.minimized && (
-              <button className="task" onClick={() => focusWindow("paint")}>
-                Paint
-              </button>
-            )}
-            {!wins.museum.minimized && (
-              <button className="task" onClick={() => focusWindow("museum")}>
-                Digital Museum
-              </button>
-            )}
-            {!wins.journal.minimized && (
-              <button className="task" onClick={() => focusWindow("journal")}>
-                Journal
-              </button>
-            )}
-            {!wins.about.minimized && (
-              <button className="task" onClick={() => focusWindow("about")}>
-                About
-              </button>
-            )}
-            {!wins.modeling.minimized && (
-              <button className="task" onClick={() => focusWindow("modeling")}>
-                3D Modeling
-              </button>
-            )}
-            {!wins.video.minimized && (
-  <button className="task" onClick={() => focusWindow("video")}>
-    Visual
-  </button>
-)}
-<div
-  style={{
-    marginLeft: "auto",
-    display: "flex",
-    alignItems: "center",
-    gap: 6,              // ⭐ 아이콘 간격
-    height: 22,
-    padding: "0 10px",
-    border: "1px solid #000",
-    background: "#c0c0c0",
-    boxShadow: "inset -1px -1px #808080, inset 1px 1px #fff",
-    fontSize: 12,
+    {Object.values(wins)
+      .filter((w) => w.open) // ✅ open=true인 창만 taskbar에 표시
+      .map((w) => (
+        <button
+          key={w.key}
+          className={`task ${w.minimized ? "pressed" : ""}`} // ✅ 최소화면 눌린 느낌
+          onClick={() => { if (w.minimized) {
+      restoreWindow(w.key);   // ✅ 눌린(최소화) → 복원
+    } else {
+      minimizeWindow(w.key);  // ✅ 떠있는(비최소화) → 최소화
+    }
   }}
+        >
+          {w.title}
+        </button>
+      ))}
+
+    <div
+      style={{
+        marginLeft: "auto",
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        height: 22,
+        padding: "0 10px",
+        border: "1px solid #000",
+        background: "#c0c0c0",
+        boxShadow: "inset -1px -1px #808080, inset 1px 1px #fff",
+        fontSize: 12,
+      }}
 >
   
 
@@ -473,7 +537,12 @@ useEffect(() => {
             transform: scale(0.96);
           }
         }
-          /* ✅ WinClassic 느낌의 닫기 버튼 */
+ 
+
+        /* =========================
+   Win95 Deep Engraved Buttons
+========================= */
+
 .winbtn {
   width: 18px !important;
   height: 18px !important;
@@ -487,23 +556,109 @@ useEffect(() => {
   position: relative;
 }
 
-/* 두꺼운 X를 "파여있는" 느낌으로 */
-.winbtn::before {
-  content: "";
-  position: absolute;
-  inset: 3px;
-  background:
-    linear-gradient(45deg, transparent 42%, #111 42%, #111 58%, transparent 58%),
-    linear-gradient(-45deg, transparent 42%, #111 42%, #111 58%, transparent 58%);
-}
-
-/* 눌렀을 때(Win95 버튼 눌림) */
+/* 눌렸을 때 */
 .winbtn:active {
   box-shadow:
     inset 1px 1px #808080,
     inset -1px -1px #ffffff;
-}/* ===== Win95: 4:3 fixed desktop scaler ===== *//* ===== Fullscreen + Win95 vibe (NO scaling) ===== */
+}
 
+/* 공통 아이콘 레이어 */
+.winbtn::before,
+.winbtn::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* =========================
+   최소화 (–)
+========================= */
+
+/* 진회색 본체 */
+.winbtn.min::before {
+  width: 10px;
+  height: 2px;
+  background: #404040; /* 진회색 */
+  top: 62%;
+}
+
+/* 흰색 하이라이트 */
+.winbtn.min::after {
+  width: 10px;
+  height: 1px;
+  background: #ffffff;
+  top: 60%;
+}
+
+/* =========================
+   최대화 (□)
+========================= */
+
+/* 진회색 테두리 */
+.winbtn.max::before {
+  width: 10px;
+  height: 8px;
+  border: 2px solid #404040;
+  background: transparent;
+}
+
+/* 흰색 하이라이트(좌상단) */
+.winbtn.max::after {
+  width: 10px;
+  height: 8px;
+  border: 2px solid #ffffff;
+  border-right: none;
+  border-bottom: none;
+}
+
+/* =========================
+   닫기 (X)
+========================= */
+
+/* 진회색 X */
+.winbtn.close::before {
+  width: 12px;
+  height: 12px;
+  background:
+    linear-gradient(
+      45deg,
+      transparent 43%,
+      #404040 43%,
+      #404040 57%,
+      transparent 57%
+    ),
+    linear-gradient(
+      -45deg,
+      transparent 43%,
+      #404040 43%,
+      #404040 57%,
+      transparent 57%
+    );
+}
+
+/* 흰색 하이라이트 X */
+.winbtn.close::after {
+  width: 12px;
+  height: 12px;
+  background:
+    linear-gradient(
+      45deg,
+      transparent 43%,
+      #ffffff 43%,
+      #ffffff 50%,
+      transparent 50%
+    ),
+    linear-gradient(
+      -45deg,
+      transparent 43%,
+      #ffffff 43%,
+      #ffffff 50%,
+      transparent 50%
+    );
+}
 /* CRT scanline 효과 */
 .crt95 {
   position: relative;
@@ -558,6 +713,14 @@ useEffect(() => {
   bottom: 0;
   z-index: 10000;
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+.task.pressed {
+  box-shadow:
+    inset 1px 1px #808080,
+    inset -1px -1px #ffffff !important;
+  border: 1px solid #000;
+  padding-top: 2px; /* 살짝 눌린 느낌 */
 }
 
 
@@ -641,21 +804,25 @@ function WindowFrame({
   win,
   onFocus,
   onClose,
+  onMinimize,            // ✅ 추가
+  onToggleFullscreen,
   onMove,
   children,
   isMobile = false, 
 }: {
-  win: { title: string; x: number; y: number; z: number; w?: number; h?: number; closing?: boolean };
+  win: Win;
   onFocus: () => void;
   onClose: () => void;
   onMove: (x: number, y: number) => void;
+  onMinimize: () => void;               // ✅ 추가
+  onToggleFullscreen: () => void; 
   children: React.ReactNode;
   isMobile?: boolean;
 }) {
   const drag = useRef({ dragging: false, ox: 0, oy: 0 });
 
   const onPointerDownTitle = (e: React.PointerEvent) => {
-  if (isMobile) return; // ✅ 버튼(닫기) 누른 경우엔 드래그 시작하지 않음
+  if (isMobile || isFull) return; // ✅ fullscreen이면 드래그 금지
   if ((e.target as HTMLElement).closest("button")) return;
 
   onFocus();
@@ -669,7 +836,7 @@ function WindowFrame({
 
 
   const onPointerMoveTitle = (e: React.PointerEvent) => {
-    if (isMobile) return;
+    if (isMobile || isFull) return;
     if (!drag.current.dragging) return;
     onMove(e.clientX - drag.current.ox, e.clientY - drag.current.oy);
   };
@@ -681,19 +848,20 @@ function WindowFrame({
       el.releasePointerCapture(e.pointerId);
     } catch {}
   };
-
+   const isFull = !!win.fullscreen;
    return (
-    <div
-      className={`window ${win.closing ? "closing" : ""}`}
-      style={{
-        left: isMobile ? 0 : win.x,
-        top: isMobile ? 0 : win.y,
-        zIndex: win.z,
-        width: isMobile ? "100vw" : (win.w ? `${win.w}px` : undefined),
-        height: isMobile ? "calc(100dvh - 48px)" : (win.h ? `${win.h}px` : undefined), // taskbar 고려
-      }}
-      onMouseDown={onFocus}
-    ><div
+  <div
+    className={`window ${win.closing ? "closing" : ""}`}
+    style={{
+      display: win.minimized ? "none" : "block",
+      left: isMobile || isFull ? 0 : win.x,
+      top: isMobile || isFull ? 0 : win.y,
+      zIndex: win.z,
+      width: isMobile || isFull ? "100vw" : (win.w ? `${win.w}px` : undefined),
+      height: isMobile || isFull ? "calc(100dvh - 48px)" : (win.h ? `${win.h}px` : undefined),
+    }}
+    onMouseDown={onFocus}
+  ><div
   className="titlebar"
   style={{
     position: "relative",
@@ -708,26 +876,41 @@ function WindowFrame({
 
       
         <div>{win.title}</div>
-        <div className="buttons">
-          <button
-  className="winbtn"
-  onClick={(e) => {
-    e.stopPropagation();
-    onClose();
-  }}
-  style={{
-    width: 20,
-    height: 18,
-    fontWeight: 700,
-    cursor: "pointer",
-    pointerEvents: "auto",
-  }}
->
-  ×
-</button>
+        <div className="buttons" style={{ display: "flex", gap: 2 }}>
+  {/* 최소화 */}
+  <button
+    className="winbtn min"
+    aria-label="Minimize"
+    title="Minimize"
+    onClick={(e) => {
+      e.stopPropagation();
+      onMinimize();
+    }}
+  />
 
-        </div>
-      </div>
+  {/* 전체화면 토글 */}
+  <button
+    className={`winbtn max ${win.fullscreen ? "isOn" : ""}`}
+    aria-label="Fullscreen"
+    title={win.fullscreen ? "Exit Fullscreen" : "Fullscreen"}
+    onClick={(e) => {
+      e.stopPropagation();
+      onToggleFullscreen();
+    }}
+  />
+
+  {/* 닫기 */}
+  <button
+    className="winbtn close"
+    aria-label="Close"
+    title="Close"
+    onClick={(e) => {
+      e.stopPropagation();
+      onClose();
+    }}
+  />
+</div>
+</div>
 
       <div
   className="window-body"
@@ -863,25 +1046,20 @@ function DesktopModelOverlay({
     >
       {/* 닫기 버튼 (taskbar 안 가리게) */}
       <button
-        onMouseDown={(e) => e.stopPropagation()}
-        onClick={onClose}
-        style={{
-          position: "absolute",
-          top: 12,
-          right: 12,
-          width: 34,
-          height: 28,
-          border: "1px solid #000",
-          background: "#c0c0c0",
-          boxShadow: "inset -2px -2px #808080, inset 2px 2px #fff",
-          fontWeight: 700,
-          cursor: "pointer",
-          zIndex: 1,
-        }}
-        title="Close (Esc)"
-      >
-        X
-      </button>
+  className="winbtn close"
+  aria-label="Close"
+  title="Close"
+  onMouseDown={(e) => e.stopPropagation()}
+  onClick={onClose}
+  style={{
+    position: "absolute",
+    top: 12,
+    right: 12,
+    zIndex: 1,
+    width: 20,
+    height: 18,
+  }}
+/>
 
       {/* ✅ 이 영역 클릭은 닫히지 않게 막고, 여기서만 회전/줌 */}
       <div
@@ -1225,7 +1403,7 @@ function RightAdPanel({ onClose }: { onClose: () => void }) {
           }}
         >
           <span>Ads</span>
-          <button className="winbtn" onClick={onClose} />
+          <button className="winbtn close" onClick={onClose} aria-label="Close" title="Close" />
         </div>
 
         {/* ✅ 내용: 광고 이미지가 칸에 딱 맞게 1장만 */}
@@ -1316,7 +1494,7 @@ function ConfirmModal({
 
           <div>{title}</div>
           <div className="buttons">
-            <button className="winbtn" onClick={onNo} />
+            <button className="winbtn close" onClick={onNo} aria-label="Close" title="Close" />
           </div>
         </div>
 
@@ -1392,7 +1570,12 @@ function AlertModal({
         >
           <div>{title}</div>
           <div className="buttons">
-            <button className="winbtn" onClick={onOk} />
+            <button
+  className="winbtn close"
+  aria-label="Close"
+  title="Close"
+  onClick={onOk}
+/>
           </div>
         </div>
 
