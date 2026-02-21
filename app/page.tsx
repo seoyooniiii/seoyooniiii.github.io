@@ -739,8 +739,15 @@ const toggleFullscreen = (key: AppKey) => {
   );
 }
 
-
-.viewport95::before { content: none !important; }
+/* vignette / bloom */
+.viewport95::before {
+  content: none !important;
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 8999;
+  box-shadow: inset 0 0 40px rgba(0,0,0,0.25);
+}
 
 .viewport95{
   position: relative;
