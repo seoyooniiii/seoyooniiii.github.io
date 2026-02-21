@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import html2canvas from "html2canvas";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import AboutSection from './components/AboutSection';
 
 
@@ -46,23 +47,8 @@ const handleFirstIconClickHint = () => {
   }, 1000);
 };
 
-const [escHintOpen, setEscHintOpen] = useState(false);
-const escHintTimerRef = useRef<number | null>(null);
 
-useEffect(() => {
-  if (!malwareFxOn) return;
 
-  setEscHintOpen(true);
-
-  if (escHintTimerRef.current) window.clearTimeout(escHintTimerRef.current);
-  escHintTimerRef.current = window.setTimeout(() => {
-    setEscHintOpen(false);
-  }, 1800);
-
-  return () => {
-    if (escHintTimerRef.current) window.clearTimeout(escHintTimerRef.current);
-  };
-}, [malwareFxOn]);
 
 
 
@@ -106,7 +92,7 @@ useEffect(() => {
     if (bsodOpen) return;
 
     setMalwareFxOn(false);  // ✅ 악성코드 모드 종료
-    setEscHintOpen(false);  // ✅ ESC 안내 토스트도 닫기
+  
   };
 
   window.addEventListener("keydown", onKeyDown);
@@ -292,55 +278,10 @@ const toggleFullscreen = (key: AppKey) => {
       )}
 
 <div className={`viewport95 ${malwareFxOn ? "malwareOn" : ""}`}>
+   
+
   
       <main className="desktop95" style={{ position: "relative", isolation: "isolate"}}>
-
-<svg width="0" height="0" style={{ position: "absolute" }}>
-  <filter id="winDisintegrate">
-    {/* 1) 픽셀 그리드처럼 “샘플링” 느낌: turbulence를 단계화 */}
-    <feTurbulence
-      type="fractalNoise"
-      baseFrequency="0.9"
-      numOctaves="1"
-      seed="7"
-      result="noise"
-    />
-    <feComponentTransfer in="noise" result="poster">
-      {/* 값을 계단화 → ‘픽셀 블록’처럼 뭉개짐 */}
-      <feFuncR type="discrete" tableValues="0 0.25 0.5 0.75 1" />
-      <feFuncG type="discrete" tableValues="0 0.25 0.5 0.75 1" />
-      <feFuncB type="discrete" tableValues="0 0.25 0.5 0.75 1" />
-    </feComponentTransfer>
-
-    {/* 2) 창 자체를 덩어리로 흔들어 찢는 displacement */}
-    <feDisplacementMap
-      in="SourceGraphic"
-      in2="poster"
-      scale="12"
-      xChannelSelector="R"
-      yChannelSelector="G"
-      result="displaced"
-    />
-
-    {/* 3) 약한 색분리(예술적으로) */}
-    <feColorMatrix
-      in="displaced"
-      type="matrix"
-      values="
-        1 0 0 0 0
-        0 1 0 0 0
-        0 0 1 0 0
-        0 0 0 1 0
-      "
-      result="base"
-    />
-    <feOffset in="base" dx="1.2" dy="0" result="r" />
-    <feOffset in="base" dx="-1.2" dy="0" result="c" />
-    <feBlend in="r" in2="c" mode="screen" result="rgbshift" />
-
-    <feBlend in="rgbshift" in2="base" mode="multiply" />
-  </filter>
-</svg>
 
         {/* Desktop video background */}
 {desktopVideo && (
@@ -433,6 +374,7 @@ const toggleFullscreen = (key: AppKey) => {
   onBackToFiles={() => setMuseumView("files")}
   onTriggerMalware={() => {
   // 1) BSOD 먼저
+  setMalwareFxOn(false); // ✅ 먼저 끄고
   setBsodOpen(true);
 }}
   onHint={handleFirstIconClickHint}
@@ -522,7 +464,7 @@ const toggleFullscreen = (key: AppKey) => {
   
 
 
-        {/* Taskbar: 부팅 끝난 뒤에만 */}
+        
         
       </main>
     
@@ -579,12 +521,7 @@ const toggleFullscreen = (key: AppKey) => {
       message="Double-click the icon to open."
     />
   )}
-  {escHintOpen && (
-  <HoloHint
-    text={"Press ESC to exit"}
-    sub={"MALWARE.exe is running"}
-  />
-)}
+  
   {museumConfirmOpen && (
   <ConfirmModal
     title="Digital Museum"
@@ -612,6 +549,13 @@ const toggleFullscreen = (key: AppKey) => {
 )}
 {/* ✅ 데스크탑을 "뚫고" 올라오는 3D 오버레이 */}
       {desktopModel && <DesktopModelOverlay model={desktopModel} onClose={closeDesktopModel} />}
+     
+
+      
+      </div>
+       {malwareFxOn && (
+  <PixelateOverlay enabled={true} px={3} fps={12} targetSelector=".viewport95"  className="malwareFx" />
+)}
       {bsodOpen && (
   <BSODOverlay
     onDone={() => {
@@ -624,17 +568,8 @@ const toggleFullscreen = (key: AppKey) => {
     }}
   />
 )}
-      {malwareFxOn && (
-  <>
-    <WindowDisintegrateOverlay
-      healRadius={120}
-      block={8}
-      intensity={1.0}
-      spawnRate={48}
-    />
-  </>
-)}
-</div>
+     
+
 
 
 
@@ -790,7 +725,7 @@ const toggleFullscreen = (key: AppKey) => {
 
 /* CRT scanline */
 .viewport95::after {
-  content: "";
+  content: none !important;
   position: fixed;
   inset: 0;
   pointer-events: none;
@@ -804,15 +739,8 @@ const toggleFullscreen = (key: AppKey) => {
   );
 }
 
-/* vignette / bloom */
-.viewport95::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 8999;
-  box-shadow: inset 0 0 40px rgba(0,0,0,0.25);
-}
+
+.viewport95::before { content: none !important; }
 
 .viewport95{
   position: relative;
@@ -823,8 +751,8 @@ const toggleFullscreen = (key: AppKey) => {
 }
 
 .desktop95{
-  width: 100vw;
-  height: 100dvh;            /* 또는 100% */
+  width: 100%;
+  height: 100%;            /* 또는 100% */
   padding-bottom: 48px; 
 
   background-image: url("/wallpaper/win98.png");
@@ -834,7 +762,7 @@ const toggleFullscreen = (key: AppKey) => {
 }
 
 .taskbarFixed{
-  position: fixed;
+  position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
@@ -962,10 +890,10 @@ const toggleFullscreen = (key: AppKey) => {
   scrollbar-color: #808080 #c0c0c0;
 }
 
-/* ✅ 악성코드 모드: 전체 화면 반전 + 약간의 CRT/글리치 느낌 */
-/* ✅ 악성코드 모드: 기본은 반전 커서 */
-.viewport95.malwareOn { 
-  filter: hue-rotate(180deg) contrast(1.2) saturate(1.1);
+/* ✅ 악성코드 모드: 반전 + 색변형 */
+.viewport95.malwareOn {
+  filter: invert(1) hue-rotate(180deg) contrast(1.2) saturate(1.1);
+  will-change: filter;
 }
 
 .viewport95.malwareOn,
@@ -997,23 +925,16 @@ const toggleFullscreen = (key: AppKey) => {
 }
 
 
-  :root{
-  --px: 6px; /* 🔥 픽셀 블록 크기 (4~8 추천) */
-}
-
+  
 /* 기존 .window::after 픽셀 블록 제거/비활성화 */
 .viewport95.malwareOn .window::after { content: none !important; }
 
-/* ✅ 전체 화면(배경+아이콘+창+광고+모달+전부) 분해 */
-.viewport95.malwareOn {
-  filter: url(#winDisintegrate) hue-rotate(180deg) contrast(1.2) saturate(1.1);
-  will-change: filter;
-}
+
 
 /* ✅ 창은 필터 제거(중복 방지), 대신 흔들림만 */
 .viewport95.malwareOn .window {
   filter: none;
-  animation: disintegrateJitter 900ms steps(2) infinite;
+  animation: none;
   will-change: transform;
 }
 @keyframes disintegrateJitter {
@@ -1056,12 +977,9 @@ const toggleFullscreen = (key: AppKey) => {
    -1px 0 rgba(0, 200, 255, 0.28);
 }
 
-/* 창 떨림: 너무 과하면 0.8px -> 0.4px로 줄여 */
-@keyframes winWobble {
-  0%, 100% { transform: translate(0,0); }
-  25% { transform: translate(0.6px, -0.4px); }
-  50% { transform: translate(-0.6px, 0.5px); }
-  75% { transform: translate(0.3px, 0.6px); }
+.viewport95.malwareOn .pixelateOverlay,
+.pixelateOverlay.malwareFx {
+  filter: invert(1) hue-rotate(180deg) contrast(1.2) saturate(1.1);
 }
 
 @font-face {
@@ -1091,106 +1009,17 @@ body {
   image-rendering: pixelated;
 }
 
-/* =========================
-   HOLOGRAM ESC HINT (CRISP)
-========================= */
-.holoWrap{
-  position: fixed;
-  left: 50%;
-  top: 22px;              /* 원하면 중앙: top:50% + translateY(-50%) */
-  transform: translateX(-50%);
-  z-index: 25000;         /* BSOD(20000)보다도 위로 */
-  pointer-events: none;
-  text-align: center;
+:root { --px: 6; }
 
-  /* ✅ 픽셀 폰트/스무딩 전역을 여기서 강제 무시 */
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased !important;
-  -moz-osx-font-smoothing: grayscale !important;
-  text-rendering: geometricPrecision !important;
-
-  /* 홀로그램 느낌 */
-  mix-blend-mode: screen;
-  filter: none !important;
+.pixelateOverlay canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
-.holoText{
-  font-size: 18px;
-  font-weight: 650;
-  letter-spacing: 0.6px;
-  color: rgba(210, 245, 255, 0.96);
 
-  /* 네온 글로우 */
-  text-shadow:
-    0 0 8px rgba(80, 220, 255, 0.55),
-    0 0 18px rgba(120, 120, 255, 0.35),
-    0 0 28px rgba(60, 255, 210, 0.22);
 
-  /* 미세한 ‘분리’ 느낌 (과하면 숫자 줄여) */
-  position: relative;
-}
 
-.holoText::before,
-.holoText::after{
-  content: attr(data-text);
-  position: absolute;
-  left: 0;
-  top: 0;
-  opacity: 0.55;
-  pointer-events: none;
-}
 
-.holoText::before{
-  transform: translateX(0.8px);
-  color: rgba(255, 80, 160, 0.35);
-  filter: blur(0.2px);
-}
-
-.holoText::after{
-  transform: translateX(-0.8px);
-  color: rgba(0, 220, 255, 0.28);
-  filter: blur(0.2px);
-}
-
-/* data-text 넣기 위해 holoText에 data-text 주입 */
-.holoText{
-  --txt: "";
-}
-.holoText{ }
-
-.holoSub{
-  margin-top: 4px;
-  font-size: 12px;
-  letter-spacing: 0.35px;
-  color: rgba(200, 235, 255, 0.82);
-  text-shadow: 0 0 10px rgba(80, 220, 255, 0.25);
-}
-
-/* 스캔라인 한 줄이 지나가는 느낌 */
-.holoScan{
-  position: absolute;
-  left: 50%;
-  top: -6px;
-  width: 320px;
-  height: 44px;
-  transform: translateX(-50%);
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    rgba(120,255,255,0.10),
-    transparent
-  );
-  filter: blur(0.2px);
-  opacity: 0.9;
-  animation: holoScan 1.6s linear infinite;
-}
-
-@keyframes holoScan{
-  0%   { transform: translateX(-50%) translateY(0); opacity: 0.0; }
-  15%  { opacity: 0.9; }
-  55%  { opacity: 0.6; }
-  100% { transform: translateX(-50%) translateY(18px); opacity: 0.0; }
-}
 
 
       `}</style>
@@ -1263,7 +1092,7 @@ function WindowFrame({
   isMobile?: boolean;
 }) {
   const drag = useRef({ dragging: false, ox: 0, oy: 0 });
-
+const isFull = !!win.fullscreen;
   const onPointerDownTitle = (e: React.PointerEvent) => {
   if (isMobile || isFull) return; // ✅ fullscreen이면 드래그 금지
   if ((e.target as HTMLElement).closest("button")) return;
@@ -1291,7 +1120,7 @@ function WindowFrame({
       el.releasePointerCapture(e.pointerId);
     } catch {}
   };
-   const isFull = !!win.fullscreen;
+   
    return (
   <div
     className={`window ${win.closing ? "closing" : ""}`}
@@ -2052,6 +1881,7 @@ function Win95Toast({
 }) {
   return (
     <div
+    className="win95Toast"
       style={{
        position: "fixed",
 left: 18,
@@ -2374,499 +2204,6 @@ function ControlRow({
   );
 }
 
-function MalwarePixelOverlay({
-  onExit,
-  cursorMaskSrc = "/cursors/malware_cursor.png", // ✅ 네 커서 PNG 경로
-  hotspot = { x: 2, y: 2 }, // ✅ CSS cursor hotspot이랑 반드시 같아야 함
-  drawSize = 32,            // ✅ 커서 표시 크기(px)
-}: {
-  onExit: () => void;
-  cursorMaskSrc?: string;
-  hotspot?: { x: number; y: number };
-  drawSize?: number;
-}) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const rafRef = useRef<number | null>(null);
-  const pointerRef = useRef({ x: 0, y: 0, active: false });
-  const maskImgRef = useRef<HTMLImageElement | null>(null);
-  const maskReadyRef = useRef(false);
-
-  useEffect(() => {
-    const img = new Image();
-    img.src = cursorMaskSrc;
-    img.onload = () => {
-      maskImgRef.current = img;
-      maskReadyRef.current = true;
-    };
-    img.onerror = () => {
-      maskReadyRef.current = false;
-    };
-  }, [cursorMaskSrc]);
-
-  useEffect(() => {
-    const onMove = (e: PointerEvent) => {
-      pointerRef.current.x = e.clientX;
-      pointerRef.current.y = e.clientY;
-      pointerRef.current.active = true;
-    };
-    const onLeave = () => (pointerRef.current.active = false);
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onExit();
-    };
-
-    window.addEventListener("pointermove", onMove, { passive: true });
-    window.addEventListener("pointerleave", onLeave);
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerleave", onLeave);
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [onExit]);
-
-  useEffect(() => {
-    const c = canvasRef.current;
-    if (!c) return;
-    const ctx = c.getContext("2d", { alpha: true });
-    if (!ctx) return;
-
-    const resize = () => {
-      const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
-      c.width = Math.floor(window.innerWidth * dpr);
-      c.height = Math.floor(window.innerHeight * dpr);
-      c.style.width = "100%";
-      c.style.height = "100%";
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-    resize();
-    window.addEventListener("resize", resize);
-
-    const tick = () => {
-      
-      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-
-      const p = pointerRef.current;
-      if (p.active && maskReadyRef.current && maskImgRef.current) {
-        const blocks = 240; // 강도
-        const R = 60;       // 커서 주변 반경
-        const px = 4;       // 픽셀 뭉개짐 크기
-
-        // ✅ 커서 마스크를 그릴 위치: "핫스팟" 기준으로 맞춰야 둥둥 안 뜸
-        const x0 = Math.round(p.x - hotspot.x);
-        const y0 = Math.round(p.y - hotspot.y);
-
-        ctx.save();
-
-        // 1) 글리치 픽셀을 “커서 주변”에 그림
-        ctx.globalAlpha = 0.9;
-        ctx.globalCompositeOperation = "difference";
-        for (let i = 0; i < blocks; i++) {
-          const ang = Math.random() * Math.PI * 2;
-          const rad = Math.random() * R;
-
-          // 커서 주변에서 생성
-          const x = p.x + Math.cos(ang) * rad;
-          const y = p.y + Math.sin(ang) * rad;
-
-          const s = px * (1 + (Math.random() > 0.82 ? 2 : 0));
-          const xx = Math.floor(x / s) * s;
-          const yy = Math.floor(y / s) * s;
-
-          const r = Math.floor(120 + Math.random() * 135);
-          const g = Math.floor(120 + Math.random() * 135);
-          const b = Math.floor(120 + Math.random() * 135);
-
-          ctx.fillStyle = `rgb(${r},${g},${b})`;
-          ctx.fillRect(xx, yy, s, s);
-        }
-
-        // 2) ✅ “커서 PNG 알파”로만 남기기
-        //    커서 겉면(형태)대로만 픽셀이 깨져 보이게 됨
-        ctx.globalCompositeOperation = "destination-in";
-        ctx.globalAlpha = 1;
-        ctx.drawImage(maskImgRef.current, x0, y0, drawSize, drawSize);
-
-        ctx.restore();
-      }
-
-      rafRef.current = requestAnimationFrame(tick);
-    };
-
-    rafRef.current = requestAnimationFrame(tick);
-
-    return () => {
-      window.removeEventListener("resize", resize);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, [drawSize, hotspot.x, hotspot.y, cursorMaskSrc]);
-
-  return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9500,
-        pointerEvents: "none",
-      }}
-    >
-      <canvas ref={canvasRef} />
-    </div>
-  );
-}
-
-function MalwareEdgeGlitchOverlay({
-  healRadius = 120,
-  border = 14,
-  block = 6,
-  intensity = 1.0,
-}: {
-  healRadius?: number;
-  border?: number;
-  block?: number;
-  intensity?: number;
-}) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const rafRef = useRef<number | null>(null);
-  const rectsRef = useRef<DOMRect[]>([]);
-  const pointerRef = useRef({ x: 0, y: 0, active: false });
-
-  // ✅ pointer tracking
-  useEffect(() => {
-    const onMove = (e: PointerEvent) => {
-      pointerRef.current.x = e.clientX;
-      pointerRef.current.y = e.clientY;
-      pointerRef.current.active = true;
-    };
-    const onLeave = () => (pointerRef.current.active = false);
-    window.addEventListener("pointermove", onMove, { passive: true });
-    window.addEventListener("pointerleave", onLeave);
-    return () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerleave", onLeave);
-    };
-  }, []);
-
-  // ✅ window rect 수집(주기적으로 업데이트: 드래그/리사이즈 대응)
-  useEffect(() => {
-    const collect = () => {
-      const els = Array.from(document.querySelectorAll(".window")) as HTMLElement[];
-      rectsRef.current = els
-        .filter((el) => {
-          const st = window.getComputedStyle(el);
-          return st.display !== "none" && st.visibility !== "hidden";
-        })
-        .map((el) => el.getBoundingClientRect());
-    };
-
-    collect();
-    const id = window.setInterval(collect, 120);
-    window.addEventListener("resize", collect);
-
-    return () => {
-      window.clearInterval(id);
-      window.removeEventListener("resize", collect);
-    };
-  }, []);
-
-  // ✅ canvas resize + render loop
-  useEffect(() => {
-    const c = canvasRef.current;
-    if (!c) return;
-    const ctx = c.getContext("2d");
-    if (!ctx) return;
-
-    const resize = () => {
-      const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
-      c.width = Math.floor(window.innerWidth * dpr);
-      c.height = Math.floor(window.innerHeight * dpr);
-      c.style.width = "100%";
-      c.style.height = "100%";
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.imageSmoothingEnabled = false;
-    };
-    resize();
-    window.addEventListener("resize", resize);
-
-    const randGrad = (xx: number, yy: number, t: number) => {
-  // yy 기반 + 시간(t) 기반으로 색이 흐르는 그라데이션
-  const wave = Math.sin(yy * 0.02 + t * 0.004);
-  const v = 140 + Math.floor((wave + 1) * 45); // 140~230 정도
-  // 약간 푸른/보라 톤 섞어서 “윈도우 글리치” 느낌
-  const r = v + Math.floor(Math.sin(t * 0.006 + xx * 0.01) * 20);
-  const g = v - 10;
-  const b = v + 25;
-  return `rgb(${Math.max(0, Math.min(255, r))},${g},${Math.max(0, Math.min(255, b))})`;
-};
-const drawTearBands = (r: DOMRect, tNow: number) => {
-  const x = Math.floor(r.left);
-  const y = Math.floor(r.top);
-  const w = Math.floor(r.width);
-  const h = Math.floor(r.height);
-
-  const step = Math.max(1, block);
-  const bands = Math.max(2, Math.floor(3 * intensity)); // 띠 개수
-  const bandH = Math.max(6, step * 3);                  // 띠 두께
-
-  for (let i = 0; i < bands; i++) {
-    const yy = y + Math.floor(Math.random() * h);
-    const shift =
-      Math.sin(tNow * 0.01 + yy * 0.08) * (10 + 18 * intensity); // ✅ 옆으로 밀림
-    const jitter = (Math.random() - 0.5) * step;
-
-    // 띠 영역만 "수평 이동"된 픽셀 블록을 뿌림
-    for (let xx = x; xx < x + w; xx += step) {
-      if (Math.random() < 0.35 * intensity) {
-        const s = step * (Math.random() > 0.93 ? 2 : 1);
-        const px = Math.floor((xx + shift + jitter) / s) * s;
-        const py = Math.floor(yy / s) * s;
-
-        ctx.fillStyle = randGrad(px, py, tNow);
-        ctx.fillRect(px, py, s, Math.min(bandH, s * 2));
-      }
-    }
-  }
-};
-    const drawRectBorderBlocks = (r: DOMRect, tNow: number) => {
-  const x = Math.floor(r.left);
-  const y = Math.floor(r.top);
-  const w = Math.floor(r.width);
-  const h = Math.floor(r.height);
-
-  const step = Math.max(1, block);
-  const t = border;
-
-  // 1) 테두리
-  for (let xx = x - t; xx <= x + w + t; xx += step) {
-    if (Math.random() < 0.55 * intensity) {
-      ctx.fillStyle = randGrad(xx, y - t, tNow);
-      ctx.fillRect(xx, y - t, step, step);
-    }
-    if (Math.random() < 0.55 * intensity) {
-      ctx.fillStyle = randGrad(xx, y + h, tNow);
-      ctx.fillRect(xx, y + h, step, step);
-    }
-  }
-
-  for (let yy = y - t; yy <= y + h + t; yy += step) {
-    if (Math.random() < 0.55 * intensity) {
-      ctx.fillStyle = randGrad(x - t, yy, tNow);
-      ctx.fillRect(x - t, yy, step, step);
-    }
-    if (Math.random() < 0.55 * intensity) {
-      ctx.fillStyle = randGrad(x + w, yy, tNow);
-      ctx.fillRect(x + w, yy, step, step);
-    }
-  }
-
-  // 2) 내부 분해
-  const pad = 2;
-  const x1 = x + pad;
-  const y1 = y + pad;
-  const x2 = x + w - pad;
-  const y2 = y + h - pad;
-
-  for (let yy = y1; yy < y2; yy += step) {
-    for (let xx = x1; xx < x2; xx += step) {
-      const dx = Math.min(xx - x1, x2 - xx);
-      const dy = Math.min(yy - y1, y2 - yy);
-      const d = Math.min(dx, dy);
-
-      const edgeFactor = Math.max(0, 1 - d / Math.max(1, t));
-      const p = (0.02 + 0.18 * edgeFactor) * intensity;
-
-      if (Math.random() < p) {
-        const drift = Math.random() < 0.5 ? step : step * 2;
-        const ox = (Math.random() - 0.5) * drift * edgeFactor * 2;
-        const oy = (Math.random() - 0.5) * drift * edgeFactor * 2;
-
-        const s = step * (Math.random() > 0.92 ? 2 : 1);
-        const px = Math.floor((xx + ox) / s) * s;
-        const py = Math.floor((yy + oy) / s) * s;
-
-        ctx.fillStyle = randGrad(xx, yy, tNow);
-        ctx.fillRect(px, py, s, s);
-      }
-    }
-  }
-
-  // 3) 코너 파손 강조
-  const corners = [
-    [x1, y1],
-    [x2, y1],
-    [x1, y2],
-    [x2, y2],
-  ] as const;
-
-  for (const [cx, cy] of corners) {
-    const count = Math.floor(40 * intensity);
-    for (let i = 0; i < count; i++) {
-      const dx = (Math.random() - 0.5) * t * 2;
-      const dy = (Math.random() - 0.5) * t * 2;
-      const s = step * (Math.random() > 0.88 ? 2 : 1);
-
-      ctx.fillStyle = randGrad(cx, cy, tNow);
-      ctx.fillRect(
-        Math.floor((cx + dx) / s) * s,
-        Math.floor((cy + dy) / s) * s,
-        s,
-        s
-      );
-    }
-  }
-};
-
-    const drawViewportEdge = (tNow: number) => {
-  const W = window.innerWidth;
-  const H = window.innerHeight;
-  const t = border;
-  const step = Math.max(2, block);
-
-  // 상/하
-  for (let x = 0; x <= W; x += step) {
-    if (Math.random() < 0.45 * intensity) {
-      ctx.fillStyle = randGrad(x, 0, tNow);
-      ctx.fillRect(x, 0, step, step);
-    }
-    if (Math.random() < 0.45 * intensity) {
-      ctx.fillStyle = randGrad(x, H - step, tNow);
-      ctx.fillRect(x, H - step, step, step);
-    }
-  }
-
-  // 좌/우
-  for (let y = 0; y <= H; y += step) {
-    if (Math.random() < 0.45 * intensity) {
-      ctx.fillStyle = randGrad(0, y, tNow);
-      ctx.fillRect(0, y, step, step);
-    }
-    if (Math.random() < 0.45 * intensity) {
-      ctx.fillStyle = randGrad(W - step, y, tNow);
-      ctx.fillRect(W - step, y, step, step);
-    }
-  }
-
-  // 두께(한 겹 더)
-  for (let i = 1; i < Math.max(2, Math.floor(t / step)); i++) {
-    const o = i * step;
-
-    for (let x = 0; x <= W; x += step) {
-      if (Math.random() < 0.18 * intensity) {
-        ctx.fillStyle = randGrad(x, o, tNow);
-        ctx.fillRect(x, o, step, step);
-      }
-      if (Math.random() < 0.18 * intensity) {
-        ctx.fillStyle = randGrad(x, H - step - o, tNow);
-        ctx.fillRect(x, H - step - o, step, step);
-      }
-    }
-
-    for (let y = 0; y <= H; y += step) {
-      if (Math.random() < 0.18 * intensity) {
-        ctx.fillStyle = randGrad(o, y, tNow);
-        ctx.fillRect(o, y, step, step);
-      }
-      if (Math.random() < 0.18 * intensity) {
-        ctx.fillStyle = randGrad(W - step - o, y, tNow);
-        ctx.fillRect(W - step - o, y, step, step);
-      }
-    }
-  }
-};
-
-    const tick = () => {
-  const tNow = performance.now();
-  const W = window.innerWidth;
-  const H = window.innerHeight;
-
-  ctx.clearRect(0, 0, W, H);
-  ctx.save();
-
-  // 1) 전체 노이즈(아주 얇게)
-  ctx.globalCompositeOperation = "overlay";
-  ctx.globalAlpha = 0.08 * intensity;
-  for (let i = 0; i < 900 * intensity; i++) {
-    const x = Math.random() * W;
-    const y = Math.random() * H;
-    const w = 1 + Math.random() * 2;
-    const h = 1 + Math.random() * 2;
-    const v = 180 + Math.random() * 60;
-    ctx.fillStyle = `rgb(${v},${v},${v})`;
-    ctx.fillRect(x, y, w, h);
-  }
-
-  // 2) “찢김 밴드” (수평 스트립이 좌우로 밀리는 느낌)
-  ctx.globalCompositeOperation = "screen";
-  ctx.globalAlpha = 0.22 * intensity;
-
-  const bands = Math.floor(3 + 5 * intensity);
-  for (let b = 0; b < bands; b++) {
-    const y = Math.floor(Math.random() * H);
-    const bandH = Math.floor(8 + Math.random() * 30);
-    const shift = Math.sin(tNow * 0.003 + y * 0.02) * (12 + 40 * intensity);
-
-    // 밴드 자체를 색감 있게 (보라/청록 계열)
-    const r = 120 + Math.floor(40 * Math.sin(tNow * 0.004 + b));
-    const g = 140;
-    const bb = 200 + Math.floor(30 * Math.cos(tNow * 0.003 + b));
-    ctx.fillStyle = `rgba(${r},${g},${bb},0.35)`;
-
-    // 밴드: 얇은 라인들이 약간 깨져서 이어진 느낌
-    for (let x = 0; x < W; x += 6) {
-      if (Math.random() < 0.6) {
-        ctx.fillRect(x + shift, y, 6, bandH);
-      }
-    }
-  }
-
-  // 3) 창 주변에만 아주 약한 “헤이즈” (테두리 픽셀 대신 안개)
-  ctx.globalCompositeOperation = "soft-light";
-  ctx.globalAlpha = 0.18 * intensity;
-  for (const r of rectsRef.current) {
-    ctx.fillStyle = "rgba(180,220,255,0.18)";
-    ctx.fillRect(r.left - 6, r.top - 6, r.width + 12, r.height + 12);
-  }
-
-  ctx.restore();
-
-  // 4) 마우스 주변 heal (기존 로직 유지, 더 부드럽게)
-  const p = pointerRef.current;
-  if (p.active) {
-    ctx.save();
-    ctx.globalCompositeOperation = "destination-out";
-    const g = ctx.createRadialGradient(p.x, p.y, healRadius * 0.05, p.x, p.y, healRadius);
-    g.addColorStop(0, "rgba(0,0,0,1)");
-    g.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, healRadius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  rafRef.current = requestAnimationFrame(tick);
-};
-
-    rafRef.current = requestAnimationFrame(tick);
-
-    return () => {
-      window.removeEventListener("resize", resize);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, [healRadius, border, block, intensity]);
-
-  return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9500, // scanline(8999/9000) 아래/위는 취향. 창 위로는 올라와야 함
-        pointerEvents: "none",
-      }}
-    >
-      <canvas ref={canvasRef} />
-    </div>
-  );
-}
 
 
 function BSODOverlay({
@@ -3021,303 +2358,207 @@ const dumpRenderText = useMemo(() => {
     .join("\n");
 }, [dumpTyped, cols]);
 
-  return (
+ return (
+  <div
+    style={{
+      position: "fixed",
+      inset: 0,
+      zIndex: 20000,
+      background: "#001088",
+      color: "#fff",
+      fontFamily:
+        '"Fixedsys Excelsior","Fixedsys","Lucida Console","MS Gothic",monospace',
+      padding: 22,
+      display: "flex",
+      flexDirection: "column",
+      gap: 14,
+      
+    }}
+  >
+    <div style={{ fontSize: 14, lineHeight: 1.2, whiteSpace: "pre-wrap" }}>
+      {stopLine}
+    </div>
+
     <div
       style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 20000,
-        background: "#001088",
-        color: "#fff",
-        // ✅ Win95 BSOD 느낌: Fixedsys류 우선, 없으면 Lucida Console로 폴백
-        fontFamily:
-          '"Fixedsys Excelsior","Fixedsys","Lucida Console","MS Gothic",monospace',
-        padding: 22,
-        display: "flex",
-        flexDirection: "column",
-        gap: 14,
+        whiteSpace: "pre-line",
+        fontSize: 30,
+        lineHeight: BSOD_LH,
+        letterSpacing: 0,
+        fontWeight: 400,
       }}
     >
-      {/* ✅ 맨 위 STOP 코드 */}
-      <div
-        style={{
-          fontSize: 14,
-          lineHeight: 1.2,
-          whiteSpace: "pre-wrap",
-        }}
-      >
-        {stopLine}
-      </div>
-
-      {/* ✅ 질문 영역(큰 글씨): dump가 시작돼도 그대로 남아있음 */}
-      <div
-  style={{
-    whiteSpace: "pre-line",
-    fontSize: 30,     // ✅ 덤프와 동일
-    lineHeight: BSOD_LH,     // ✅ 덤프와 동일
-    letterSpacing: 0,        // ✅ BSOD 느낌
-    fontWeight: 400,         // ✅ 덤프처럼 굵기 제거
-  }}
->
-  {typed}
-  {phase === "question" && <span style={{ opacity: 0.8 }}>▌</span>}
-</div>
-
-      {/* ✅ 아래 여백 공간 = 덤프가 채워질 영역 */}
-<div style={{ flex: 1, overflow: "hidden" }}>
-  {phase === "dump" && (
-    <pre
-      style={{
-        margin: 0,
-        width: "100%",
-        height: "100%",
-        overflow: "hidden",
-        whiteSpace: "pre",
-        fontSize: BSOD_FONT,
-lineHeight: BSOD_LH,
-      }}
-    >
-      {dumpRenderText}
-      {"\n"}▌
-    </pre>
-  )}
-</div>
+      {typed}
+      {phase === "question" && <span style={{ opacity: 0.8 }}>▌</span>}
     </div>
-  );
+
+    <div style={{ flex: 1, overflow: "hidden" }}>
+      {phase === "dump" && (
+        <pre
+          style={{
+            margin: 0,
+            width: "100%",
+            height: "100%",
+            overflow: "hidden",
+            whiteSpace: "pre",
+            fontSize: BSOD_FONT,
+            lineHeight: BSOD_LH,
+            color: "#fff", // ✅ 덤프/문구 하얀색 고정
+          }}
+        >
+          {dumpRenderText}
+          {"\n"}▌
+        </pre>
+      )}
+    </div>
+  </div>
+);
 }
 
-function WindowDisintegrateOverlay({
-  healRadius = 120,
-  block = 6,
-  intensity = 1,
-  spawnRate = 34, // 초당 조각 생성량 느낌
+
+
+function PixelateOverlay({
+  enabled,
+  targetSelector = ".viewport95",
+  px = 6,
+  fps = 12, // 8~15 사이 추천
+   className = "",
 }: {
-  healRadius?: number;
-  block?: number;
-  intensity?: number;
-  spawnRate?: number;
+  enabled: boolean;
+  targetSelector?: string;
+  px?: number;
+  fps?: number;
+  className?: string; // ✅ 추가
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const rafRef = useRef<number | null>(null);
-  const rectsRef = useRef<DOMRect[]>([]);
-  const pointerRef = useRef({ x: 0, y: 0, active: false });
+  const runningRef = useRef(false);
+  const inFlightRef = useRef(false);
 
-  type Piece = {
-    x: number;
-    y: number;
-    vx: number;
-    vy: number;
-    s: number;
-    life: number;
-    max: number;
-    hue: number;
-    a: number;
-    src: number; // 0: inside piece, 1: edge dust
-  };
-  const piecesRef = useRef<Piece[]>([]);
-  const accRef = useRef(0);
+  const timerRef = useRef<number | null>(null);
+const dprRef = useRef(1);
 
-  // pointer tracking (heal 구멍)
   useEffect(() => {
-    const onMove = (e: PointerEvent) => {
-      pointerRef.current.x = e.clientX;
-      pointerRef.current.y = e.clientY;
-      pointerRef.current.active = true;
-    };
-    const onLeave = () => (pointerRef.current.active = false);
-    window.addEventListener("pointermove", onMove, { passive: true });
-    window.addEventListener("pointerleave", onLeave);
-    return () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerleave", onLeave);
-    };
-  }, []);
+    if (!enabled) {
+      runningRef.current = false;
+      const c = canvasRef.current;
+      if (c) {
+        const ctx = c.getContext("2d");
+        ctx?.clearRect(0, 0, c.width, c.height);
+      }
+      return;
+    }
 
-  // window rect 수집
-  useEffect(() => {
-    const collect = () => {
-      const els = Array.from(document.querySelectorAll(".window")) as HTMLElement[];
-      rectsRef.current = els
-        .filter((el) => {
-          const st = window.getComputedStyle(el);
-          return st.display !== "none" && st.visibility !== "hidden";
-        })
-        .map((el) => el.getBoundingClientRect());
-    };
-    collect();
-    const id = window.setInterval(collect, 140);
-    window.addEventListener("resize", collect);
-    return () => {
-      window.clearInterval(id);
-      window.removeEventListener("resize", collect);
-    };
-  }, []);
-
-  // canvas loop
-  useEffect(() => {
+    const target = document.querySelector(targetSelector) as HTMLElement | null;
     const c = canvasRef.current;
-    if (!c) return;
+    if (!target || !c) return;
+
     const ctx = c.getContext("2d");
     if (!ctx) return;
 
-    const resize = () => {
-      const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
-      c.width = Math.floor(window.innerWidth * dpr);
-      c.height = Math.floor(window.innerHeight * dpr);
-      c.style.width = "100%";
-      c.style.height = "100%";
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.imageSmoothingEnabled = false;
-    };
+    runningRef.current = true;
+
+   const resize = () => {
+  const dpr = window.devicePixelRatio || 1; // ✅ floor 금지
+  dprRef.current = dpr;
+
+  c.width = Math.round(window.innerWidth * dpr);
+  c.height = Math.round(window.innerHeight * dpr);
+
+  c.style.width = "100%";
+  c.style.height = "100%";
+
+  // ✅ 이제부터는 “CSS 픽셀 좌표계”로 그리기
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+
+  // ✅ 잔상 제거
+  ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+};
+
     resize();
+    const clearAll = () => {
+  // ✅ transform 영향 없이 캔버스 전체 픽셀을 확실히 지움
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, c.width, c.height);
+  ctx.setTransform(dprRef.current, 0, 0, dprRef.current, 0, 0);
+};
     window.addEventListener("resize", resize);
 
-    const spawnPieceFromRect = (r: DOMRect, t: number) => {
-      const step = Math.max(2, block);
-      const inside = Math.random() < 0.75;
+    const interval = Math.max(30, Math.floor(1000 / fps));
 
-      // 생성 위치: 창 내부(대부분) + 창 테두리 근처(먼지)
-      const x = inside
-        ? r.left + Math.random() * r.width
-        : (Math.random() < 0.5 ? r.left : r.right) + (Math.random() - 0.5) * 10;
-      const y = inside
-        ? r.top + Math.random() * r.height
-        : (Math.random() < 0.5 ? r.top : r.bottom) + (Math.random() - 0.5) * 10;
+    const tick = async () => {
+  if (!runningRef.current) return;
 
-      // 창 중심에서 바깥으로 튀는 방향
-      const cx = r.left + r.width / 2;
-      const cy = r.top + r.height / 2;
-      const dx = x - cx;
-      const dy = y - cy;
-      const len = Math.max(1, Math.hypot(dx, dy));
-      const nx = dx / len;
-      const ny = dy / len;
+  // ✅ 이전 캡쳐가 아직 끝나기 전이면 이번 프레임은 스킵
+  if (inFlightRef.current) {
+    timerRef.current = window.setTimeout(tick, interval);
+    return;
+  }
 
-      const speed = (inside ? 35 : 55) * intensity * (0.6 + Math.random() * 0.9);
-      const vx = nx * speed + (Math.random() - 0.5) * 20 * intensity;
-      const vy = ny * speed + (Math.random() - 0.5) * 20 * intensity;
+  inFlightRef.current = true;
 
-      const s = step * (Math.random() > 0.85 ? 2 : 1);
-      const max = (inside ? 520 : 360) + Math.random() * 260;
+  try {
+    // ✅ 여기서 먼저 선언 (에러 원인 제거)
+    const w = window.innerWidth;
+    const h = window.innerHeight;
 
-      // 색: 푸른/보라 계열이 “윈도우 다른세계” 느낌 좋음
-      const hue = 200 + Math.sin(t * 0.001 + x * 0.01) * 35 + (Math.random() - 0.5) * 20;
+    const shot = await html2canvas(target, {
+      backgroundColor: null,
+      scale: 1 / px,
 
-      piecesRef.current.push({
-        x: Math.floor(x / s) * s,
-        y: Math.floor(y / s) * s,
-        vx,
-        vy,
-        s,
-        life: 0,
-        max,
-        hue,
-        a: inside ? 0.55 : 0.35,
-        src: inside ? 0 : 1,
-      });
-    };
+      // ✅ 캡쳐 기준 고정
+      width: w,
+      height: h,
+      windowWidth: w,
+      windowHeight: h,
+      scrollX: 0,
+      scrollY: 0,
 
-    const draw = () => {
-      const t = performance.now();
-      const W = window.innerWidth;
-      const H = window.innerHeight;
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+      ignoreElements: (el) =>
+        (el as HTMLElement).classList?.contains("pixelateOverlay") ?? false,
+    });
 
-      ctx.clearRect(0, 0, W, H);
+    if (!runningRef.current) return;
 
-      // spawn 조각
-      const rects = rectsRef.current;
-      if (rects.length) {
-        // 프레임마다 spawnRate를 부드럽게 누적해서 일정량 생성
-        accRef.current += (spawnRate * intensity) / 60;
-        while (accRef.current >= 1) {
-          accRef.current -= 1;
-          const r = rects[(Math.random() * rects.length) | 0];
-          spawnPieceFromRect(r, t);
-        }
-      }
+    clearAll();
+    ctx.imageSmoothingEnabled = false;
 
-      // update + draw
-      const arr = piecesRef.current;
-      ctx.save();
+    // ✅ px 배수로 올림해서 “경계선” 방지
+    const dw = Math.ceil(w / px) * px;
+    const dh = Math.ceil(h / px) * px;
 
-      // 예술적으로: screen + slight difference 섞기
-      ctx.globalCompositeOperation = "screen";
+    ctx.drawImage(shot, 0, 0, shot.width, shot.height, 0, 0, dw, dh);
+  } catch (err) {
+    console.error("PixelateOverlay tick error:", err);
+  } finally {
+    inFlightRef.current = false;
+    timerRef.current = window.setTimeout(tick, interval);
+  }
+};
 
-      for (let i = arr.length - 1; i >= 0; i--) {
-        const p = arr[i];
-        p.life += 16.7;
-
-        // 감쇠
-        const k = 1 - p.life / p.max;
-        if (k <= 0) {
-          arr.splice(i, 1);
-          continue;
-        }
-
-        // 움직임 (살짝 휘어짐)
-        const curl = Math.sin(t * 0.004 + p.y * 0.02) * 0.22;
-        p.vx += curl * 0.6;
-        p.vy += (p.src === 0 ? 0.18 : 0.12); // 아주 약한 중력
-        p.x += (p.vx / 60) * (0.9 + 0.2 * Math.random());
-        p.y += (p.vy / 60) * (0.9 + 0.2 * Math.random());
-
-        // 알파
-        const a = p.a * k;
-
-        // 색
-        ctx.fillStyle = `hsla(${p.hue}, 90%, ${55 + 10 * Math.sin(t * 0.003 + p.x * 0.01)}%, ${a})`;
-        ctx.fillRect(Math.floor(p.x / p.s) * p.s, Math.floor(p.y / p.s) * p.s, p.s, p.s);
-
-        // 가끔 “공허 조각”처럼 빼먹는 느낌(살짝만)
-        if (Math.random() < 0.02 * intensity) {
-          ctx.globalCompositeOperation = "difference";
-          ctx.fillStyle = `rgba(10,10,10,${0.12 * k})`;
-          ctx.fillRect(Math.floor(p.x / p.s) * p.s, Math.floor(p.y / p.s) * p.s, p.s, p.s);
-          ctx.globalCompositeOperation = "screen";
-        }
-      }
-
-      ctx.restore();
-
-      // heal hole (오버레이만 지움)
-      const m = pointerRef.current;
-      if (m.active) {
-        ctx.save();
-        ctx.globalCompositeOperation = "destination-out";
-        const g = ctx.createRadialGradient(m.x, m.y, healRadius * 0.08, m.x, m.y, healRadius);
-        g.addColorStop(0, "rgba(0,0,0,1)");
-        g.addColorStop(1, "rgba(0,0,0,0)");
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(m.x, m.y, healRadius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
-
-      // 조각 수 제한(성능)
-      const maxPieces = Math.floor(1600 * intensity);
-      if (piecesRef.current.length > maxPieces) {
-        piecesRef.current.splice(0, piecesRef.current.length - maxPieces);
-      }
-
-      rafRef.current = requestAnimationFrame(draw);
-    };
-
-    rafRef.current = requestAnimationFrame(draw);
+    tick();
 
     return () => {
+      runningRef.current = false;
+      if (timerRef.current) window.clearTimeout(timerRef.current);
+  timerRef.current = null;
       window.removeEventListener("resize", resize);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      clearAll();
     };
-  }, [healRadius, block, intensity, spawnRate]);
+  }, [enabled, targetSelector, px, fps]);
 
   return (
     <div
+     className={`pixelateOverlay ${className}`}
       style={{
+        
         position: "fixed",
         inset: 0,
-        zIndex: 9600,
-        pointerEvents: "none",
+        zIndex: 9400, // scanline(9000) 위/아래는 취향. 창 위로 오게 하려면 9500~9800
+        pointerEvents: "none", // ✅ 클릭은 원본 DOM이 받음
       }}
     >
       <canvas ref={canvasRef} />
@@ -3325,18 +2566,3 @@ function WindowDisintegrateOverlay({
   );
 }
 
-function HoloHint({
-  text,
-  sub,
-}: {
-  text: string;
-  sub?: string;
-}) {
-  return (
-    <div className="holoWrap" aria-live="polite">
-      <div className="holoText" data-text={text}>{text}</div>
-      {sub && <div className="holoSub">{sub}</div>}
-      <div className="holoScan" />
-    </div>
-  );
-}
